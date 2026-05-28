@@ -1,5 +1,11 @@
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import { colors, spacing, typography } from "./src/core/theme";
 
@@ -8,7 +14,15 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar style="light" />
 
-      <Text style={styles.logo}>Phycocarbon</Text>
+      <View style={styles.logoCard}>
+        <Image
+          source={require("./assets/images/phycocarbon-splash-icon.png")}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
+      </View>
+
+      <Text style={styles.title}>Phycocarbon</Text>
 
       <Text style={styles.subtitle}>
         Inteligência espacial para microalgas, segurança alimentar e créditos de carbono.
@@ -29,7 +43,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: spacing.xl,
   },
-  logo: {
+  logoCard: {
+    width: 180,
+    height: 180,
+    borderRadius: 32,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.xl,
+    padding: spacing.md,
+  },
+  logoImage: {
+    width: 150,
+    height: 150,
+  },
+  title: {
     fontSize: typography.title,
     fontWeight: "bold",
     color: colors.textLight,
