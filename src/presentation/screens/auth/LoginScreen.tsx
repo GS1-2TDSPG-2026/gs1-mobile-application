@@ -36,7 +36,7 @@ export function LoginScreen() {
     } catch {
       Alert.alert(
         "Erro no login",
-        "Use operador@phycocarbon.com ou investidor@phycocarbon.com com senha 123456."
+        "Use operador@phycocarbon.com, investidor@phycocarbon.com ou comprador@phycocarbon.com com senha 123456."
       );
     } finally {
       setLoading(false);
@@ -89,7 +89,7 @@ export function LoginScreen() {
       </TouchableOpacity>
 
       <Text style={styles.hint}>
-        Demo: operador@phycocarbon.com ou investidor@phycocarbon.com
+        Demo: operador@phycocarbon.com | investidor@phycocarbon.com | comprador@phycocarbon.com
       </Text>
     </View>
   );
