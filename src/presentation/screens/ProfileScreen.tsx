@@ -3,21 +3,23 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { colors, spacing, typography } from "../../core/theme";
 import { useAuth } from "../contexts/AuthContext";
 
-export function HomeMockScreen() {
+export function ProfileScreen() {
   const { session, signOut } = useAuth();
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Bem-vindo ao Phycocarbon</Text>
+      <Text style={styles.title}>Perfil</Text>
 
-      <Text style={styles.label}>Usuário:</Text>
-      <Text style={styles.value}>{session?.usuario.nome}</Text>
+      <View style={styles.card}>
+        <Text style={styles.label}>Nome</Text>
+        <Text style={styles.value}>{session?.usuario.nome}</Text>
 
-      <Text style={styles.label}>E-mail:</Text>
-      <Text style={styles.value}>{session?.usuario.email}</Text>
+        <Text style={styles.label}>E-mail</Text>
+        <Text style={styles.value}>{session?.usuario.email}</Text>
 
-      <Text style={styles.label}>Perfil:</Text>
-      <Text style={styles.badge}>{session?.usuario.perfil}</Text>
+        <Text style={styles.label}>Perfil de acesso</Text>
+        <Text style={styles.badge}>{session?.usuario.perfil}</Text>
+      </View>
 
       <TouchableOpacity style={styles.button} onPress={signOut}>
         <Text style={styles.buttonText}>Sair</Text>
@@ -31,7 +33,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     padding: spacing.xl,
-    justifyContent: "center",
   },
   title: {
     color: colors.textLight,
@@ -39,20 +40,25 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: spacing.xl,
   },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: spacing.lg,
+  },
   label: {
-    color: colors.secondary,
+    color: colors.muted,
     fontSize: typography.caption,
     marginTop: spacing.md,
   },
   value: {
-    color: colors.textLight,
+    color: colors.text,
     fontSize: typography.body,
     marginTop: spacing.xs,
   },
   badge: {
     alignSelf: "flex-start",
-    color: colors.textLight,
     backgroundColor: colors.carbon,
+    color: colors.textLight,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: 999,
