@@ -1,9 +1,9 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
+import { colors } from "../../core/theme";
 import { CarteiraCarbonoScreen } from "../../presentation/screens/investor/CarteiraCarbonoScreen";
 import { MarketplaceScreen } from "../../presentation/screens/investor/MarketplaceScreen";
 import { ProfileScreen } from "../../presentation/screens/ProfileScreen";
-import { colors } from "../../core/theme";
 
 const Tab = createBottomTabNavigator();
 

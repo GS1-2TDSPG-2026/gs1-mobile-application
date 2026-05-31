@@ -1,9 +1,9 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
+import { colors } from "../../core/theme";
 import { AlertasCriticosScreen } from "../../presentation/screens/operator/AlertasCriticosScreen";
 import { DashboardOperacionalScreen } from "../../presentation/screens/operator/DashboardOperacionalScreen";
 import { ProfileScreen } from "../../presentation/screens/ProfileScreen";
-import { colors } from "../../core/theme";
 
 const Tab = createBottomTabNavigator();
 
