@@ -1,12 +1,15 @@
 {
   "expo": {
     "name": "Phycocarbon",
-    "slug": "phycocarbon-mobile",
+    "slug": "phycocarbon",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/phycocarbon-splash-icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "updates": {
+      "enabled": false
+    },
     "splash": {
       "image": "./assets/images/phycocarbon-splash-icon.png",
       "resizeMode": "contain",
@@ -24,6 +27,7 @@
       ]
     ],
     "android": {
+      "package": "com.kelson.phycocarbon",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/phycocarbon-splash-icon.png",
         "backgroundColor": "#ffffff"
