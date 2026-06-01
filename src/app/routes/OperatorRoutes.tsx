@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { colors } from "../../core/theme";
 import { AlertasCriticosScreen } from "../../presentation/screens/operator/AlertasCriticosScreen";
 import { DashboardOperacionalScreen } from "../../presentation/screens/operator/DashboardOperacionalScreen";
+import { DeviceControlScreen } from "../../presentation/screens/operator/DeviceControlScreen";
 import { ProfileScreen } from "../../presentation/screens/ProfileScreen";
 
 const Tab = createBottomTabNavigator();
@@ -28,6 +29,13 @@ export function OperatorRoutes() {
         component={DashboardOperacionalScreen}
         options={{
           title: "Operação",
+        }}
+      />
+      <Tab.Screen
+        name="IoT"
+        component={DeviceControlScreen}
+        options={{
+          title: "IoT",
         }}
       />
 
