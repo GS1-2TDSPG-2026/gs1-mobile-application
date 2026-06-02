@@ -5,6 +5,7 @@ import { AlertasCriticosScreen } from "../../presentation/screens/operator/Alert
 import { DashboardOperacionalScreen } from "../../presentation/screens/operator/DashboardOperacionalScreen";
 import { DeviceControlScreen } from "../../presentation/screens/operator/DeviceControlScreen";
 import { ProfileScreen } from "../../presentation/screens/ProfileScreen";
+import { BiomassPredictionScreen } from "../../presentation/screens/operator/BiomassPredictionScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -46,6 +47,14 @@ export function OperatorRoutes() {
           title: "Alertas",
         }}
       />
+
+      <Tab.Screen
+  name="IA"
+  component={BiomassPredictionScreen}
+  options={{
+    title: "IA",
+  }}
+/>
 
       <Tab.Screen
         name="Perfil"
