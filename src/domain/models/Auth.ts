@@ -8,6 +8,7 @@ export type AuthUser = {
   nome: string;
   email: string;
   perfil: UserRole;
+  fotoUrl?: string;
   fazendaId?: number;
   carteiraId?: number;
 };

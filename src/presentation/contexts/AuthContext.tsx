@@ -15,6 +15,7 @@ type AuthContextData = {
   loading: boolean;
   signIn: (data: LoginRequest) => Promise<void>;
   signOut: () => Promise<void>;
+  updateProfileImage: (imageUri: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -48,12 +49,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setSession(null);
   }
 
+  async function updateProfileImage(imageUri: string) {
+    if (!session) {
+      return;
+    }
+
+    const updatedSession: AuthSession = {
+      ...session,
+      usuario: {
+        ...session.usuario,
+        fotoUrl: imageUri,
+      },
+    };
+
+    await sessionStorage.save(updatedSession);
+    setSession(updatedSession);
+  }
+
   useEffect(() => {
     loadStoredSession();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session, loading, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        loading,
+        signIn,
+        signOut,
+        updateProfileImage,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
