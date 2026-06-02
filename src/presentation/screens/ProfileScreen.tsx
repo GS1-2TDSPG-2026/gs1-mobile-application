@@ -1,13 +1,16 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { colors, spacing, typography } from "../../core/theme";
+import { PrimaryButton } from "../components/PrimaryButton";
+import { ScreenContainer } from "../components/ScreenContainer";
+import { StatusBadge } from "../components/StatusBadge";
 import { useAuth } from "../contexts/AuthContext";
 
 export function ProfileScreen() {
   const { session, signOut } = useAuth();
 
   return (
-    <View style={styles.container}>
+    <ScreenContainer>
       <Text style={styles.title}>Perfil</Text>
 
       <View style={styles.card}>
@@ -18,22 +21,20 @@ export function ProfileScreen() {
         <Text style={styles.value}>{session?.usuario.email}</Text>
 
         <Text style={styles.label}>Perfil de acesso</Text>
-        <Text style={styles.badge}>{session?.usuario.perfil}</Text>
+
+        <View style={styles.badgeBox}>
+          <StatusBadge label={session?.usuario.perfil ?? "SEM PERFIL"} variant="carbon" />
+        </View>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={signOut}>
-        <Text style={styles.buttonText}>Sair</Text>
-      </TouchableOpacity>
-    </View>
+      <View style={styles.buttonBox}>
+        <PrimaryButton title="Sair" variant="danger" onPress={signOut} />
+      </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    padding: spacing.xl,
-  },
   title: {
     color: colors.textLight,
     fontSize: typography.title,
@@ -55,27 +56,10 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     marginTop: spacing.xs,
   },
-  badge: {
-    alignSelf: "flex-start",
-    backgroundColor: colors.carbon,
-    color: colors.textLight,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 999,
-    fontSize: typography.caption,
-    fontWeight: "bold",
+  badgeBox: {
     marginTop: spacing.sm,
   },
-  button: {
-    backgroundColor: colors.danger,
-    borderRadius: 12,
-    padding: spacing.md,
-    alignItems: "center",
+  buttonBox: {
     marginTop: spacing.xl,
-  },
-  buttonText: {
-    color: colors.textLight,
-    fontSize: typography.body,
-    fontWeight: "bold",
   },
 });
