@@ -4,6 +4,7 @@ import { colors } from "../../core/theme";
 import { CarteiraCarbonoScreen } from "../../presentation/screens/investor/CarteiraCarbonoScreen";
 import { MarketplaceScreen } from "../../presentation/screens/investor/MarketplaceScreen";
 import { ProfileScreen } from "../../presentation/screens/ProfileScreen";
+import { TransactionHistoryScreen } from "../../presentation/screens/investor/TransactionHistoryScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -28,6 +29,14 @@ export function InvestorRoutes() {
         component={MarketplaceScreen}
         options={{
           title: "Marketplace",
+        }}
+      />
+
+      <Tab.Screen
+        name="Transacoes"
+        component={TransactionHistoryScreen}
+        options={{
+          title: "Transações",
         }}
       />
 
