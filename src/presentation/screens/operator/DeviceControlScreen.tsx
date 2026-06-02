@@ -258,11 +258,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     marginTop: spacing.md,
   },
-  statusBadge: {
+    statusBadge: {
+    minWidth: 96,
+    height: 28,
     borderRadius: 999,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-  },
+    alignItems: "center",
+    justifyContent: "center",
+},
   statusText: {
     color: colors.textLight,
     fontSize: typography.small,
@@ -291,15 +294,17 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.md,
   },
-  commandHeader: {
+    commandHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
     gap: spacing.md,
     marginBottom: spacing.md,
-  },
-  commandTextBox: {
+    },
+    commandTextBox: {
     flex: 1,
-  },
+    paddingRight: spacing.sm,
+    },
   commandTitle: {
     color: colors.text,
     fontSize: typography.body,
