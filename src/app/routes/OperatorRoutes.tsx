@@ -6,6 +6,7 @@ import { DashboardOperacionalScreen } from "../../presentation/screens/operator/
 import { DeviceControlScreen } from "../../presentation/screens/operator/DeviceControlScreen";
 import { ProfileScreen } from "../../presentation/screens/ProfileScreen";
 import { BiomassPredictionScreen } from "../../presentation/screens/operator/BiomassPredictionScreen";
+import { OrbitalDataScreen } from "../../presentation/screens/operator/OrbitalDataScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -55,6 +56,14 @@ export function OperatorRoutes() {
     title: "IA",
   }}
 />
+
+<Tab.Screen
+        name="Orbital"
+        component={OrbitalDataScreen}
+        options={{
+          title: "Orbital",
+        }}
+      />
 
       <Tab.Screen
         name="Perfil"
