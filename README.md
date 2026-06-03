@@ -6,6 +6,31 @@ O Phycocarbon é uma solução de bioeconomia que conecta **microalgas, IoT, dad
 
 ---
 
+## Status do Projeto
+
+> Projeto mobile em desenvolvimento acadêmico para a Global Solution FIAP 2026.
+
+Atualmente, o aplicativo está funcionando com **dados mockados**, pois as APIs Java e .NET ainda estão em desenvolvimento.
+
+Mesmo sem as APIs prontas, o app já possui:
+
+* Autenticação mockada
+* Cadastro mockado
+* Navegação por perfil
+* Dashboard operacional
+* Controle IoT simulado
+* Previsões de IA simuladas
+* Dados orbitais simulados
+* Alertas críticos
+* Marketplace com CRUD mockado
+* Carteira de carbono
+* Histórico de transações
+* Perfil com foto editável
+* Ícones nas abas
+* Estrutura organizada em camadas
+
+---
+
 ## Objetivo do App
 
 O aplicativo mobile representa a camada de experiência do usuário da plataforma Phycocarbon.
@@ -19,6 +44,7 @@ Usuário responsável pela operação local dos tanques de microalgas e disposit
 Funcionalidades implementadas:
 
 * Login mockado por perfil
+* Cadastro mockado
 * Dashboard operacional de telemetria
 * Visualização de tanques monitorados
 * Status de sensores e dispositivos ESP32
@@ -35,6 +61,7 @@ Usuário voltado à análise ambiental, créditos de carbono e marketplace.
 Funcionalidades implementadas:
 
 * Login mockado por perfil
+* Cadastro mockado
 * Marketplace com CRUD mockado de lotes
 * Cadastro de lote de biomassa ou crédito de carbono
 * Reserva, venda e exclusão de lotes
@@ -147,17 +174,51 @@ O app possui autenticação simulada com persistência local de sessão.
 
 A sessão é salva com `AsyncStorage`, permitindo que o usuário permaneça logado mesmo após fechar e abrir o app novamente.
 
-Arquivo principal:
+Arquivos principais:
 
 ```text
 src/presentation/contexts/AuthContext.tsx
+src/data/repositories/AuthRepository.ts
+src/data/storage/sessionStorage.ts
+src/domain/models/Auth.ts
 ```
+
+---
+
+### Cadastro Mockado
+
+Além do login mockado, o app também possui fluxo de cadastro de usuário.
+
+O cadastro permite selecionar o perfil de acesso do novo usuário:
+
+* `OPERADOR_FAZENDA`
+* `INVESTIDOR_ESG`
+* `COMPRADOR_B2B`
+
+Após o cadastro, o app cria uma sessão mockada automaticamente e redireciona o usuário para a área correta de acordo com o perfil escolhido.
+
+Fluxo:
+
+```text
+Cadastro → Criação de sessão mockada → Persistência local → Navegação por perfil
+```
+
+Arquivos principais:
+
+```text
+src/presentation/screens/auth/RegisterScreen.tsx
+src/presentation/contexts/AuthContext.tsx
+src/data/repositories/AuthRepository.ts
+src/domain/models/Auth.ts
+```
+
+Observação: como o cadastro ainda é mockado em memória, usuários criados podem ser perdidos após recarregamento total do app. Quando a API Java estiver pronta, esse fluxo será substituído por integração real com o backend.
 
 ---
 
 ### Navegação por Perfil
 
-A navegação é controlada de acordo com o perfil retornado no login mockado.
+A navegação é controlada de acordo com o perfil retornado no login ou cadastro mockado.
 
 Arquivos principais:
 
@@ -400,6 +461,26 @@ src/presentation/contexts/AuthContext.tsx
 
 ---
 
+### Componentes Reutilizáveis
+
+O projeto possui componentes reutilizáveis para reduzir repetição de código e melhorar a manutenção da interface.
+
+Componentes principais:
+
+```text
+src/presentation/components/PrimaryButton.tsx
+src/presentation/components/StatusBadge.tsx
+src/presentation/components/LoadingState.tsx
+src/presentation/components/ErrorState.tsx
+src/presentation/components/EmptyState.tsx
+src/presentation/components/ScreenContainer.tsx
+src/presentation/components/MetricCard.tsx
+```
+
+Esses componentes padronizam botões, badges, estados de carregamento, erro, lista vazia e containers de tela.
+
+---
+
 ## Usuários Mockados
 
 Enquanto as APIs Java e .NET ainda estão em desenvolvimento, o app utiliza autenticação mockada.
@@ -427,6 +508,8 @@ E-mail: comprador@phycocarbon.com
 Senha: 123456
 Perfil: COMPRADOR_B2B
 ```
+
+Também é possível criar um novo usuário pela tela de cadastro, escolhendo manualmente o perfil desejado.
 
 ---
 
@@ -504,12 +587,14 @@ Depois abra no:
 ## Diferenciais Técnicos
 
 * Navegação adaptada por perfil de usuário
+* Cadastro mockado com seleção de perfil
 * Organização em camadas
 * Hooks como ViewModels simplificados
 * Repositories mockados simulando APIs futuras
 * Persistência local de sessão com AsyncStorage
 * CRUD mockado no marketplace
 * Telas com loading, erro e estado vazio
+* Componentes reutilizáveis para estados, botões, badges e containers
 * Ícones nas abas de navegação
 * Foto de perfil editável
 * Separação entre área operacional e área de investidor/comprador
@@ -531,7 +616,6 @@ O app mobile demonstra essa conexão por meio das telas de:
 * Marketplace B2B
 
 A proposta vai além de um app comum de monitoramento, integrando sustentabilidade, bioeconomia, sensores, dados espaciais e ativos ambientais.
-
 
 ---
 
