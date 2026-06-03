@@ -12,10 +12,12 @@ import {
 
 import { colors, spacing, typography } from "../../../core/theme";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNavigation } from "@react-navigation/native";
 
 export function LoginScreen() {
   const { signIn } = useAuth();
 
+  const navigation = useNavigation<any>();
   const [email, setEmail] = useState("operador@phycocarbon.com");
   const [senha, setSenha] = useState("123456");
   const [loading, setLoading] = useState(false);
@@ -88,6 +90,13 @@ export function LoginScreen() {
         )}
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={styles.registerButton}
+        onPress={() => navigation.navigate("Register")}
+      >
+        <Text style={styles.registerButtonText}>Criar nova conta</Text>
+      </TouchableOpacity>
+
       <Text style={styles.hint}>
         Demo: operador@phycocarbon.com | investidor@phycocarbon.com | comprador@phycocarbon.com
       </Text>
@@ -147,4 +156,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: spacing.lg,
   },
+  registerButton: {
+  borderColor: colors.primary,
+  borderWidth: 1,
+  borderRadius: 12,
+  padding: spacing.md,
+  alignItems: "center",
+  marginTop: spacing.md,
+},
+registerButtonText: {
+  color: colors.primary,
+  fontSize: typography.body,
+  fontWeight: "bold",
+},
 });

@@ -1,6 +1,10 @@
-import { AuthSession, LoginRequest } from "../../domain/models/Auth";
+import {
+  AuthSession,
+  LoginRequest,
+  RegisterRequest,
+} from "../../domain/models/Auth";
 
-const mockUsers: AuthSession[] = [
+let mockUsers: AuthSession[] = [
   {
     token: "mock-jwt-token-operador",
     usuario: {
@@ -51,5 +55,36 @@ export const AuthRepository = {
     }
 
     return user;
+  },
+
+  async register(data: RegisterRequest): Promise<AuthSession> {
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    const emailAlreadyExists = mockUsers.some(
+      (item) => item.usuario.email.toLowerCase() === data.email.toLowerCase()
+    );
+
+    if (emailAlreadyExists) {
+      throw new Error("E-mail já cadastrado.");
+    }
+
+    const isOperator = data.perfil === "OPERADOR_FAZENDA";
+
+    const newSession: AuthSession = {
+      token: `mock-jwt-token-${Date.now()}`,
+      usuario: {
+        id: Date.now(),
+        nome: data.nome,
+        email: data.email,
+        perfil: data.perfil,
+        fotoUrl: "https://i.pravatar.cc/300?img=5",
+        fazendaId: isOperator ? 101 : undefined,
+        carteiraId: isOperator ? undefined : 201,
+      },
+    };
+
+    mockUsers = [newSession, ...mockUsers];
+
+    return newSession;
   },
 };

@@ -18,6 +18,13 @@ export type LoginRequest = {
   senha: string;
 };
 
+export type RegisterRequest = {
+  nome: string;
+  email: string;
+  senha: string;
+  perfil: UserRole;
+};
+
 export type AuthSession = {
   token: string;
   usuario: AuthUser;

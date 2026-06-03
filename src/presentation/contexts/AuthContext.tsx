@@ -6,7 +6,11 @@ import React, {
   useState,
 } from "react";
 
-import { AuthSession, LoginRequest } from "../../domain/models/Auth";
+import {
+  AuthSession,
+  LoginRequest,
+  RegisterRequest,
+} from "../../domain/models/Auth";
 import { AuthRepository } from "../../data/repositories/AuthRepository";
 import { sessionStorage } from "../../data/storage/sessionStorage";
 
@@ -14,6 +18,7 @@ type AuthContextData = {
   session: AuthSession | null;
   loading: boolean;
   signIn: (data: LoginRequest) => Promise<void>;
+  signUp: (data: RegisterRequest) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfileImage: (imageUri: string) => Promise<void>;
 };
@@ -42,6 +47,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     await sessionStorage.save(loggedSession);
     setSession(loggedSession);
+  }
+
+  async function signUp(data: RegisterRequest) {
+    const registeredSession = await AuthRepository.register(data);
+
+    await sessionStorage.save(registeredSession);
+    setSession(registeredSession);
   }
 
   async function signOut() {
@@ -76,6 +88,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         session,
         loading,
         signIn,
+        signUp,
         signOut,
         updateProfileImage,
       }}
