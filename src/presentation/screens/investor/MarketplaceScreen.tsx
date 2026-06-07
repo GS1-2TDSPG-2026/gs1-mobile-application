@@ -11,13 +11,39 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { colors, spacing, typography } from "../../../core/theme";
 import {
   MarketplaceLot,
+  MarketplaceLotStatus,
   MarketplaceLotType,
 } from "../../../domain/models/MarketplaceLot";
 import { useMarketplace } from "../../hooks/useMarketplace";
+
+type MarketplaceTab = {
+  label: string;
+  status: MarketplaceLotStatus;
+  icon: keyof typeof Ionicons.glyphMap;
+};
+
+const tabs: MarketplaceTab[] = [
+  {
+    label: "Disponíveis",
+    status: "DISPONIVEL",
+    icon: "storefront-outline",
+  },
+  {
+    label: "Reservados",
+    status: "RESERVADO",
+    icon: "time-outline",
+  },
+  {
+    label: "Vendidos",
+    status: "VENDIDO",
+    icon: "checkmark-circle-outline",
+  },
+];
 
 export function MarketplaceScreen() {
   const {
@@ -37,6 +63,20 @@ export function MarketplaceScreen() {
   const [pesoKg, setPesoKg] = useState("");
   const [preco, setPreco] = useState("");
   const [fazendaOrigem, setFazendaOrigem] = useState("");
+  const [activeStatus, setActiveStatus] =
+    useState<MarketplaceLotStatus>("DISPONIVEL");
+
+  const filteredLots = lots.filter((lot) => lot.status === activeStatus);
+
+  const availableCount = lots.filter(
+    (lot) => lot.status === "DISPONIVEL"
+  ).length;
+
+  const reservedCount = lots.filter(
+    (lot) => lot.status === "RESERVADO"
+  ).length;
+
+  const soldCount = lots.filter((lot) => lot.status === "VENDIDO").length;
 
   async function handleCreateLot() {
     if (!nome.trim() || !preco.trim() || !fazendaOrigem.trim()) {
@@ -58,11 +98,11 @@ export function MarketplaceScreen() {
     }
 
     await createLot({
-      nome,
+      nome: nome.trim(),
       tipo,
       pesoKg: parsedPeso,
       preco: parsedPreco,
-      fazendaOrigem,
+      fazendaOrigem: fazendaOrigem.trim(),
     });
 
     setNome("");
@@ -70,18 +110,335 @@ export function MarketplaceScreen() {
     setPreco("");
     setFazendaOrigem("");
     setTipo("BIOMASSA");
+    setActiveStatus("DISPONIVEL");
   }
 
-  function getStatusColor(item: MarketplaceLot) {
-    if (item.status === "VENDIDO") {
-      return colors.muted;
+  function getStatusColor(status: MarketplaceLotStatus) {
+    if (status === "VENDIDO") {
+      return colors.success;
     }
 
-    if (item.status === "RESERVADO") {
+    if (status === "RESERVADO") {
       return colors.warning;
     }
 
-    return colors.success;
+    return colors.primary;
+  }
+
+  function getStatusLabel(status: MarketplaceLotStatus) {
+    if (status === "VENDIDO") {
+      return "Vendido";
+    }
+
+    if (status === "RESERVADO") {
+      return "Reservado";
+    }
+
+    if (status === "CANCELADO") {
+      return "Cancelado";
+    }
+
+    return "Disponível";
+  }
+
+  function getTabCount(status: MarketplaceLotStatus) {
+    if (status === "DISPONIVEL") {
+      return availableCount;
+    }
+
+    if (status === "RESERVADO") {
+      return reservedCount;
+    }
+
+    if (status === "VENDIDO") {
+      return soldCount;
+    }
+
+    return 0;
+  }
+
+  function getEmptyMessage() {
+    if (activeStatus === "DISPONIVEL") {
+      return {
+        title: "Nenhum lote disponível",
+        text: "Cadastre um lote ou altere o status de outro lote para disponível.",
+      };
+    }
+
+    if (activeStatus === "RESERVADO") {
+      return {
+        title: "Nenhum lote reservado",
+        text: "Quando um lote for reservado, ele aparecerá nesta aba.",
+      };
+    }
+
+    return {
+      title: "Nenhum lote vendido",
+      text: "Quando uma venda for finalizada, o lote aparecerá nesta aba com o check de confirmação.",
+    };
+  }
+
+  function renderTabs() {
+    return (
+      <View style={styles.tabsContainer}>
+        {tabs.map((tab) => {
+          const isActive = activeStatus === tab.status;
+
+          return (
+            <TouchableOpacity
+              key={tab.status}
+              style={[styles.tabButton, isActive && styles.tabButtonActive]}
+              onPress={() => setActiveStatus(tab.status)}
+              activeOpacity={0.85}
+            >
+              <Ionicons
+                name={tab.icon}
+                size={18}
+                color={isActive ? colors.textLight : colors.secondary}
+              />
+
+              <Text
+                style={[styles.tabText, isActive && styles.tabTextActive]}
+                numberOfLines={1}
+              >
+                {tab.label}
+              </Text>
+
+              <View
+                style={[
+                  styles.tabCount,
+                  isActive && {
+                    backgroundColor: "rgba(255,255,255,0.2)",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.tabCountText,
+                    isActive && styles.tabCountTextActive,
+                  ]}
+                >
+                  {getTabCount(tab.status)}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  }
+
+  function renderLotCard({ item }: { item: MarketplaceLot }) {
+    const isSold = item.status === "VENDIDO";
+    const isReserved = item.status === "RESERVADO";
+    const isAvailable = item.status === "DISPONIVEL";
+
+    return (
+      <View style={[styles.card, isSold && styles.soldCard]}>
+        {isSold && (
+          <View style={styles.soldCheck}>
+            <Ionicons name="checkmark" size={18} color={colors.textLight} />
+          </View>
+        )}
+
+        <View
+          style={[
+            styles.statusBadge,
+            {
+              backgroundColor: getStatusColor(item.status),
+            },
+          ]}
+        >
+          <Text style={styles.statusText}>{getStatusLabel(item.status)}</Text>
+        </View>
+
+        <Text style={styles.cardTitle}>{item.nome}</Text>
+
+        <Text style={styles.info}>
+          Tipo: {item.tipo === "BIOMASSA" ? "Biomassa" : "Crédito de carbono"}
+        </Text>
+
+        {item.tipo === "BIOMASSA" && (
+          <Text style={styles.info}>Peso: {item.pesoKg} kg</Text>
+        )}
+
+        <Text style={styles.info}>Origem: {item.fazendaOrigem}</Text>
+
+        <Text style={styles.price}>
+          R$ {item.preco.toLocaleString("pt-BR")}
+        </Text>
+
+        <View style={styles.actions}>
+          {isAvailable && (
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => updateStatus(item.id, "RESERVADO")}
+              disabled={processingId === item.id}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.secondaryButtonText}>Reservar</Text>
+            </TouchableOpacity>
+          )}
+
+          {(isAvailable || isReserved) && (
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={() => updateStatus(item.id, "VENDIDO")}
+              disabled={processingId === item.id}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryButtonText}>Vender</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => deleteLot(item.id)}
+            disabled={processingId === item.id}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.deleteButtonText}>Excluir</Text>
+          </TouchableOpacity>
+        </View>
+
+        {processingId === item.id && (
+          <ActivityIndicator color={colors.primary} style={styles.loader} />
+        )}
+      </View>
+    );
+  }
+
+  function renderHeader() {
+    return (
+      <View>
+        <Text style={styles.title}>Marketplace</Text>
+
+        <Text style={styles.subtitle}>
+          Cadastro e negociação de biomassa e créditos de carbono.
+        </Text>
+
+        <View style={styles.formCard}>
+          <Text style={styles.formTitle}>Cadastrar novo lote</Text>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Nome do lote"
+            placeholderTextColor={colors.muted}
+            value={nome}
+            onChangeText={setNome}
+          />
+
+          <View style={styles.typeSelector}>
+            <TouchableOpacity
+              style={[
+                styles.typeButton,
+                tipo === "BIOMASSA" && styles.typeButtonActive,
+              ]}
+              onPress={() => setTipo("BIOMASSA")}
+              activeOpacity={0.85}
+            >
+              <Text
+                style={[
+                  styles.typeButtonText,
+                  tipo === "BIOMASSA" && styles.typeButtonTextActive,
+                ]}
+              >
+                Biomassa
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.typeButton,
+                tipo === "CREDITO_CARBONO" && styles.typeButtonActive,
+              ]}
+              onPress={() => setTipo("CREDITO_CARBONO")}
+              activeOpacity={0.85}
+            >
+              <Text
+                style={[
+                  styles.typeButtonText,
+                  tipo === "CREDITO_CARBONO" && styles.typeButtonTextActive,
+                ]}
+              >
+                Carbono
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {tipo === "BIOMASSA" && (
+            <TextInput
+              style={styles.input}
+              placeholder="Peso em kg"
+              placeholderTextColor={colors.muted}
+              keyboardType="numeric"
+              value={pesoKg}
+              onChangeText={setPesoKg}
+            />
+          )}
+
+          <TextInput
+            style={styles.input}
+            placeholder="Preço"
+            placeholderTextColor={colors.muted}
+            keyboardType="numeric"
+            value={preco}
+            onChangeText={setPreco}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Fazenda de origem"
+            placeholderTextColor={colors.muted}
+            value={fazendaOrigem}
+            onChangeText={setFazendaOrigem}
+          />
+
+          <TouchableOpacity
+            style={[styles.createButton, submitting && styles.buttonDisabled]}
+            onPress={handleCreateLot}
+            disabled={submitting}
+            activeOpacity={0.85}
+          >
+            {submitting ? (
+              <ActivityIndicator color={colors.textLight} />
+            ) : (
+              <Text style={styles.createButtonText}>Cadastrar lote</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryNumber}>{availableCount}</Text>
+            <Text style={styles.summaryLabel}>Disponíveis</Text>
+          </View>
+
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryNumber}>{reservedCount}</Text>
+            <Text style={styles.summaryLabel}>Reservados</Text>
+          </View>
+
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryNumber}>{soldCount}</Text>
+            <Text style={styles.summaryLabel}>Vendidos</Text>
+          </View>
+        </View>
+
+        {renderTabs()}
+      </View>
+    );
+  }
+
+  function renderEmpty() {
+    const emptyMessage = getEmptyMessage();
+
+    return (
+      <View style={styles.emptyCard}>
+        <Text style={styles.emptyTitle}>{emptyMessage.title}</Text>
+        <Text style={styles.emptyText}>{emptyMessage.text}</Text>
+      </View>
+    );
   }
 
   if (loading) {
@@ -111,181 +468,14 @@ export function MarketplaceScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <FlatList
-        data={lots}
+        data={filteredLots}
         keyExtractor={(item) => String(item.id)}
+        renderItem={renderLotCard}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmpty}
         contentContainerStyle={styles.content}
-        ListHeaderComponent={
-          <View>
-            <Text style={styles.title}>Marketplace</Text>
-
-            <Text style={styles.subtitle}>
-              Cadastro e negociação de biomassa e créditos de carbono.
-            </Text>
-
-            <View style={styles.formCard}>
-              <Text style={styles.formTitle}>Cadastrar novo lote</Text>
-
-              <TextInput
-                style={styles.input}
-                placeholder="Nome do lote"
-                placeholderTextColor={colors.muted}
-                value={nome}
-                onChangeText={setNome}
-              />
-
-              <View style={styles.typeSelector}>
-                <TouchableOpacity
-                  style={[
-                    styles.typeButton,
-                    tipo === "BIOMASSA" && styles.typeButtonActive,
-                  ]}
-                  onPress={() => setTipo("BIOMASSA")}
-                >
-                  <Text
-                    style={[
-                      styles.typeButtonText,
-                      tipo === "BIOMASSA" && styles.typeButtonTextActive,
-                    ]}
-                  >
-                    Biomassa
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.typeButton,
-                    tipo === "CREDITO_CARBONO" && styles.typeButtonActive,
-                  ]}
-                  onPress={() => setTipo("CREDITO_CARBONO")}
-                >
-                  <Text
-                    style={[
-                      styles.typeButtonText,
-                      tipo === "CREDITO_CARBONO" &&
-                        styles.typeButtonTextActive,
-                    ]}
-                  >
-                    Carbono
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {tipo === "BIOMASSA" && (
-                <TextInput
-                  style={styles.input}
-                  placeholder="Peso em kg"
-                  placeholderTextColor={colors.muted}
-                  keyboardType="numeric"
-                  value={pesoKg}
-                  onChangeText={setPesoKg}
-                />
-              )}
-
-              <TextInput
-                style={styles.input}
-                placeholder="Preço"
-                placeholderTextColor={colors.muted}
-                keyboardType="numeric"
-                value={preco}
-                onChangeText={setPreco}
-              />
-
-              <TextInput
-                style={styles.input}
-                placeholder="Fazenda de origem"
-                placeholderTextColor={colors.muted}
-                value={fazendaOrigem}
-                onChangeText={setFazendaOrigem}
-              />
-
-              <TouchableOpacity
-                style={styles.createButton}
-                onPress={handleCreateLot}
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <ActivityIndicator color={colors.textLight} />
-                ) : (
-                  <Text style={styles.createButtonText}>Cadastrar lote</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.sectionTitle}>Lotes disponíveis</Text>
-          </View>
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>Nenhum lote cadastrado</Text>
-            <Text style={styles.emptyText}>
-              Cadastre um lote para começar a simular o marketplace.
-            </Text>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View
-              style={[
-                styles.statusBadge,
-                {
-                  backgroundColor: getStatusColor(item),
-                },
-              ]}
-            >
-              <Text style={styles.statusText}>{item.status}</Text>
-            </View>
-
-            <Text style={styles.cardTitle}>{item.nome}</Text>
-
-            <Text style={styles.info}>
-              Tipo: {item.tipo === "BIOMASSA" ? "Biomassa" : "Crédito de carbono"}
-            </Text>
-
-            {item.tipo === "BIOMASSA" && (
-              <Text style={styles.info}>Peso: {item.pesoKg} kg</Text>
-            )}
-
-            <Text style={styles.info}>Origem: {item.fazendaOrigem}</Text>
-
-            <Text style={styles.price}>
-              R$ {item.preco.toLocaleString("pt-BR")}
-            </Text>
-
-            <View style={styles.actions}>
-              {item.status === "DISPONIVEL" && (
-                <TouchableOpacity
-                  style={styles.secondaryButton}
-                  onPress={() => updateStatus(item.id, "RESERVADO")}
-                  disabled={processingId === item.id}
-                >
-                  <Text style={styles.secondaryButtonText}>Reservar</Text>
-                </TouchableOpacity>
-              )}
-
-              {item.status !== "VENDIDO" && (
-                <TouchableOpacity
-                  style={styles.primaryButton}
-                  onPress={() => updateStatus(item.id, "VENDIDO")}
-                  disabled={processingId === item.id}
-                >
-                  <Text style={styles.primaryButtonText}>Vender</Text>
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => deleteLot(item.id)}
-                disabled={processingId === item.id}
-              >
-                <Text style={styles.deleteButtonText}>Excluir</Text>
-              </TouchableOpacity>
-            </View>
-
-            {processingId === item.id && (
-              <ActivityIndicator color={colors.primary} style={styles.loader} />
-            )}
-          </View>
-        )}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       />
     </KeyboardAvoidingView>
   );
@@ -296,6 +486,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+
   centerContainer: {
     flex: 1,
     backgroundColor: colors.background,
@@ -303,53 +494,64 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: spacing.xl,
   },
+
   content: {
     padding: spacing.xl,
     paddingBottom: spacing.xxl,
   },
+
   title: {
     color: colors.textLight,
     fontSize: typography.title,
-    fontWeight: "bold",
+    fontWeight: "800",
     marginBottom: spacing.sm,
   },
+
   subtitle: {
     color: colors.secondary,
     fontSize: typography.body,
     marginBottom: spacing.lg,
+    lineHeight: 22,
   },
+
   loadingText: {
     color: colors.secondary,
     fontSize: typography.body,
     marginTop: spacing.md,
   },
+
   errorText: {
     color: colors.textLight,
     fontSize: typography.body,
     textAlign: "center",
     marginBottom: spacing.lg,
   },
+
   retryButton: {
     backgroundColor: colors.primary,
     borderRadius: 12,
     padding: spacing.md,
   },
+
   retryButtonText: {
     color: colors.textLight,
     fontWeight: "bold",
   },
+
   formCard: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: spacing.lg,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
+
   formTitle: {
     color: colors.text,
     fontSize: typography.subtitle,
-    fontWeight: "bold",
+    fontWeight: "800",
     marginBottom: spacing.md,
   },
+
   input: {
     borderColor: colors.border,
     borderWidth: 1,
@@ -359,11 +561,12 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     marginBottom: spacing.md,
   },
+
   typeSelector: {
     flexDirection: "row",
-    gap: spacing.sm,
     marginBottom: spacing.md,
   },
+
   typeButton: {
     flex: 1,
     borderColor: colors.carbon,
@@ -371,42 +574,150 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: spacing.sm,
     alignItems: "center",
+    marginRight: spacing.sm,
   },
+
   typeButtonActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
+
   typeButtonText: {
     color: colors.carbon,
     fontSize: typography.small,
     fontWeight: "bold",
   },
+
   typeButtonTextActive: {
     color: colors.textLight,
   },
+
   createButton: {
     backgroundColor: colors.primary,
     borderRadius: 12,
     padding: spacing.md,
     alignItems: "center",
   },
+
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+
   createButtonText: {
     color: colors.textLight,
     fontSize: typography.body,
     fontWeight: "bold",
   },
-  sectionTitle: {
+
+  summaryRow: {
+    flexDirection: "row",
+    marginBottom: spacing.lg,
+  },
+
+  summaryCard: {
+    flex: 1,
+    backgroundColor: "rgba(142, 230, 209, 0.08)",
+    borderRadius: 14,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: "rgba(142, 230, 209, 0.18)",
+    marginRight: spacing.sm,
+  },
+
+  summaryNumber: {
     color: colors.textLight,
     fontSize: typography.subtitle,
-    fontWeight: "bold",
-    marginBottom: spacing.md,
+    fontWeight: "800",
+    marginBottom: 2,
   },
+
+  summaryLabel: {
+    color: colors.secondary,
+    fontSize: typography.small,
+    fontWeight: "700",
+  },
+
+  tabsContainer: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    borderRadius: 18,
+    padding: 4,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: "rgba(142, 230, 209, 0.16)",
+  },
+
+  tabButton: {
+    flex: 1,
+    borderRadius: 14,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: 6,
+    alignItems: "center",
+  },
+
+  tabButtonActive: {
+    backgroundColor: colors.primary,
+  },
+
+  tabText: {
+    color: colors.secondary,
+    fontSize: typography.small,
+    fontWeight: "800",
+    marginTop: 4,
+  },
+
+  tabTextActive: {
+    color: colors.textLight,
+  },
+
+  tabCount: {
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(142, 230, 209, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+    paddingHorizontal: 6,
+  },
+
+  tabCountText: {
+    color: colors.secondary,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+
+  tabCountTextActive: {
+    color: colors.textLight,
+  },
+
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: spacing.lg,
     marginBottom: spacing.md,
+    position: "relative",
+    overflow: "hidden",
   },
+
+  soldCard: {
+    borderWidth: 1,
+    borderColor: colors.success,
+  },
+
+  soldCheck: {
+    position: "absolute",
+    top: spacing.md,
+    right: spacing.md,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.success,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+  },
+
   statusBadge: {
     alignSelf: "flex-start",
     paddingHorizontal: spacing.md,
@@ -414,85 +725,107 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     marginBottom: spacing.md,
   },
+
   statusText: {
     color: colors.textLight,
     fontSize: typography.small,
     fontWeight: "bold",
   },
+
   cardTitle: {
     color: colors.text,
     fontSize: typography.subtitle,
-    fontWeight: "bold",
+    fontWeight: "800",
     marginBottom: spacing.sm,
+    paddingRight: 44,
   },
+
   info: {
     color: colors.muted,
     fontSize: typography.caption,
     marginBottom: spacing.xs,
   },
+
   price: {
     color: colors.primary,
     fontSize: typography.subtitle,
-    fontWeight: "bold",
+    fontWeight: "800",
     marginTop: spacing.md,
   },
+
   actions: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.sm,
     marginTop: spacing.lg,
   },
+
   primaryButton: {
     backgroundColor: colors.primary,
     borderRadius: 10,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
+    marginRight: spacing.sm,
+    marginBottom: spacing.sm,
   },
+
   primaryButtonText: {
     color: colors.textLight,
     fontSize: typography.small,
     fontWeight: "bold",
   },
+
   secondaryButton: {
     backgroundColor: colors.warning,
     borderRadius: 10,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
+    marginRight: spacing.sm,
+    marginBottom: spacing.sm,
   },
+
   secondaryButtonText: {
     color: colors.textLight,
     fontSize: typography.small,
     fontWeight: "bold",
   },
+
   deleteButton: {
     backgroundColor: colors.danger,
     borderRadius: 10,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
+    marginRight: spacing.sm,
+    marginBottom: spacing.sm,
   },
+
   deleteButtonText: {
     color: colors.textLight,
     fontSize: typography.small,
     fontWeight: "bold",
   },
+
   loader: {
     marginTop: spacing.md,
   },
+
   emptyCard: {
     backgroundColor: colors.surface,
     borderRadius: 16,
     padding: spacing.lg,
     alignItems: "center",
   },
+
   emptyTitle: {
     color: colors.text,
     fontSize: typography.subtitle,
     fontWeight: "bold",
     marginBottom: spacing.sm,
   },
+
   emptyText: {
     color: colors.muted,
     fontSize: typography.caption,
     textAlign: "center",
+    lineHeight: 20,
   },
 });
