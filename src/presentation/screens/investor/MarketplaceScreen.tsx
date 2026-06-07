@@ -17,7 +17,6 @@ import { colors, spacing, typography } from "../../../core/theme";
 import {
   MarketplaceLot,
   MarketplaceLotStatus,
-  MarketplaceLotType,
 } from "../../../domain/models/MarketplaceLot";
 import { useMarketplace } from "../../hooks/useMarketplace";
 
@@ -59,7 +58,6 @@ export function MarketplaceScreen() {
   } = useMarketplace();
 
   const [nome, setNome] = useState("");
-  const [tipo, setTipo] = useState<MarketplaceLotType>("BIOMASSA");
   const [pesoKg, setPesoKg] = useState("");
   const [preco, setPreco] = useState("");
   const [fazendaOrigem, setFazendaOrigem] = useState("");
@@ -79,27 +77,30 @@ export function MarketplaceScreen() {
   const soldCount = lots.filter((lot) => lot.status === "VENDIDO").length;
 
   async function handleCreateLot() {
-    if (!nome.trim() || !preco.trim() || !fazendaOrigem.trim()) {
-      Alert.alert("Campos obrigatórios", "Informe nome, preço e fazenda.");
+    if (!nome.trim() || !pesoKg.trim() || !preco.trim() || !fazendaOrigem.trim()) {
+      Alert.alert(
+        "Campos obrigatórios",
+        "Informe nome, peso, preço e fazenda de origem."
+      );
       return;
     }
 
-    const parsedPeso = tipo === "CREDITO_CARBONO" ? 0 : Number(pesoKg);
+    const parsedPeso = Number(pesoKg);
     const parsedPreco = Number(preco);
+
+    if (Number.isNaN(parsedPeso) || parsedPeso <= 0) {
+      Alert.alert("Peso inválido", "Informe o peso em kg do lote.");
+      return;
+    }
 
     if (Number.isNaN(parsedPreco) || parsedPreco <= 0) {
       Alert.alert("Preço inválido", "Informe um preço válido.");
       return;
     }
 
-    if (tipo === "BIOMASSA" && (Number.isNaN(parsedPeso) || parsedPeso <= 0)) {
-      Alert.alert("Peso inválido", "Informe o peso em kg do lote.");
-      return;
-    }
-
     await createLot({
       nome: nome.trim(),
-      tipo,
+      tipo: "BIOMASSA",
       pesoKg: parsedPeso,
       preco: parsedPreco,
       fazendaOrigem: fazendaOrigem.trim(),
@@ -109,7 +110,6 @@ export function MarketplaceScreen() {
     setPesoKg("");
     setPreco("");
     setFazendaOrigem("");
-    setTipo("BIOMASSA");
     setActiveStatus("DISPONIVEL");
   }
 
@@ -161,20 +161,20 @@ export function MarketplaceScreen() {
     if (activeStatus === "DISPONIVEL") {
       return {
         title: "Nenhum lote disponível",
-        text: "Cadastre um lote ou altere o status de outro lote para disponível.",
+        text: "Cadastre um lote de biomassa para ele aparecer nesta aba.",
       };
     }
 
     if (activeStatus === "RESERVADO") {
       return {
         title: "Nenhum lote reservado",
-        text: "Quando um lote for reservado, ele aparecerá nesta aba.",
+        text: "Quando um lote for reservado, ele aparecerá aqui.",
       };
     }
 
     return {
       title: "Nenhum lote vendido",
-      text: "Quando uma venda for finalizada, o lote aparecerá nesta aba com o check de confirmação.",
+      text: "Quando uma venda for finalizada, o lote aparecerá aqui com o check de confirmação.",
     };
   }
 
@@ -207,9 +207,7 @@ export function MarketplaceScreen() {
               <View
                 style={[
                   styles.tabCount,
-                  isActive && {
-                    backgroundColor: "rgba(255,255,255,0.2)",
-                  },
+                  isActive && styles.tabCountActive,
                 ]}
               >
                 <Text
@@ -254,18 +252,28 @@ export function MarketplaceScreen() {
 
         <Text style={styles.cardTitle}>{item.nome}</Text>
 
-        <Text style={styles.info}>
-          Tipo: {item.tipo === "BIOMASSA" ? "Biomassa" : "Crédito de carbono"}
-        </Text>
+        <Text style={styles.info}>Tipo: Biomassa</Text>
 
-        {item.tipo === "BIOMASSA" && (
-          <Text style={styles.info}>Peso: {item.pesoKg} kg</Text>
-        )}
+        <Text style={styles.info}>Peso: {item.pesoKg} kg</Text>
 
         <Text style={styles.info}>Origem: {item.fazendaOrigem}</Text>
 
+        {item.taxonomiaAlga && (
+          <Text style={styles.info}>Alga: {item.taxonomiaAlga}</Text>
+        )}
+
+        {item.codigoTanque && (
+          <Text style={styles.info}>Tanque: {item.codigoTanque}</Text>
+        )}
+
+        {item.precoUnitario ? (
+          <Text style={styles.info}>
+            Preço/kg: R$ {item.precoUnitario.toLocaleString("pt-BR")}
+          </Text>
+        ) : null}
+
         <Text style={styles.price}>
-          R$ {item.preco.toLocaleString("pt-BR")}
+          Total: R$ {item.preco.toLocaleString("pt-BR")}
         </Text>
 
         <View style={styles.actions}>
@@ -291,14 +299,21 @@ export function MarketplaceScreen() {
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => deleteLot(item.id)}
-            disabled={processingId === item.id}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.deleteButtonText}>Excluir</Text>
-          </TouchableOpacity>
+{!isSold ? (
+  <TouchableOpacity
+    style={styles.deleteButton}
+    onPress={() => deleteLot(item.id)}
+    disabled={processingId === item.id}
+    activeOpacity={0.85}
+  >
+    <Text style={styles.deleteButtonText}>Excluir</Text>
+  </TouchableOpacity>
+) : (
+  <View style={styles.finalizedBadge}>
+    <Ionicons name="lock-closed-outline" size={14} color={colors.success} />
+    <Text style={styles.finalizedBadgeText}>Venda finalizada</Text>
+  </View>
+)}
         </View>
 
         {processingId === item.id && (
@@ -314,72 +329,32 @@ export function MarketplaceScreen() {
         <Text style={styles.title}>Marketplace</Text>
 
         <Text style={styles.subtitle}>
-          Cadastro e negociação de biomassa e créditos de carbono.
+          Cadastro e negociação de lotes de biomassa de microalgas.
         </Text>
 
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Cadastrar novo lote</Text>
+          <Text style={styles.formTitle}>Cadastrar lote de biomassa</Text>
 
           <TextInput
             style={styles.input}
-            placeholder="Nome do lote"
+            placeholder="Nome ou taxonomia da alga"
             placeholderTextColor={colors.muted}
             value={nome}
             onChangeText={setNome}
           />
 
-          <View style={styles.typeSelector}>
-            <TouchableOpacity
-              style={[
-                styles.typeButton,
-                tipo === "BIOMASSA" && styles.typeButtonActive,
-              ]}
-              onPress={() => setTipo("BIOMASSA")}
-              activeOpacity={0.85}
-            >
-              <Text
-                style={[
-                  styles.typeButtonText,
-                  tipo === "BIOMASSA" && styles.typeButtonTextActive,
-                ]}
-              >
-                Biomassa
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.typeButton,
-                tipo === "CREDITO_CARBONO" && styles.typeButtonActive,
-              ]}
-              onPress={() => setTipo("CREDITO_CARBONO")}
-              activeOpacity={0.85}
-            >
-              <Text
-                style={[
-                  styles.typeButtonText,
-                  tipo === "CREDITO_CARBONO" && styles.typeButtonTextActive,
-                ]}
-              >
-                Carbono
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {tipo === "BIOMASSA" && (
-            <TextInput
-              style={styles.input}
-              placeholder="Peso em kg"
-              placeholderTextColor={colors.muted}
-              keyboardType="numeric"
-              value={pesoKg}
-              onChangeText={setPesoKg}
-            />
-          )}
+          <TextInput
+            style={styles.input}
+            placeholder="Peso em kg"
+            placeholderTextColor={colors.muted}
+            keyboardType="numeric"
+            value={pesoKg}
+            onChangeText={setPesoKg}
+          />
 
           <TextInput
             style={styles.input}
-            placeholder="Preço"
+            placeholder="Preço por kg"
             placeholderTextColor={colors.muted}
             keyboardType="numeric"
             value={preco}
@@ -562,36 +537,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
 
-  typeSelector: {
-    flexDirection: "row",
-    marginBottom: spacing.md,
-  },
-
-  typeButton: {
-    flex: 1,
-    borderColor: colors.carbon,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingVertical: spacing.sm,
-    alignItems: "center",
-    marginRight: spacing.sm,
-  },
-
-  typeButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-
-  typeButtonText: {
-    color: colors.carbon,
-    fontSize: typography.small,
-    fontWeight: "bold",
-  },
-
-  typeButtonTextActive: {
-    color: colors.textLight,
-  },
-
   createButton: {
     backgroundColor: colors.primary,
     borderRadius: 12,
@@ -679,6 +624,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 4,
     paddingHorizontal: 6,
+  },
+
+  tabCountActive: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
   },
 
   tabCountText: {
@@ -827,5 +776,22 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     textAlign: "center",
     lineHeight: 20,
-  },
+  },finalizedBadge: {
+  flexDirection: "row",
+  alignItems: "center",
+  borderColor: colors.success,
+  borderWidth: 1,
+  borderRadius: 10,
+  paddingVertical: spacing.sm,
+  paddingHorizontal: spacing.md,
+  marginRight: spacing.sm,
+  marginBottom: spacing.sm,
+},
+
+finalizedBadgeText: {
+  color: colors.success,
+  fontSize: typography.small,
+  fontWeight: "bold",
+  marginLeft: 6,
+},
 });
