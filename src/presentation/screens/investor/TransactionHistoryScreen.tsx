@@ -72,7 +72,7 @@ export function TransactionHistoryScreen() {
           <Text style={styles.info}>Data: {item.data}</Text>
         </View>
 
-        <Text style={styles.hash}>Hash: {item.hashAuditoria}</Text>
+        <Text style={styles.hash}>Referência: {item.hashAuditoria}</Text>
 
         <Text style={styles.price}>{formatCurrency(item.valor)}</Text>
       </View>

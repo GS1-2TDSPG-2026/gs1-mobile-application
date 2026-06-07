@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { colors, spacing, typography } from "../../../core/theme";
 import {
@@ -27,28 +28,8 @@ function getRiskColor(risco: OrbitalRiskLevel) {
 }
 
 export function OrbitalDataScreen() {
-  const { summary, loading, error, reload } = useOrbitalData();
-
-  if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator color={colors.primary} />
-        <Text style={styles.loadingText}>Carregando dados orbitais...</Text>
-      </View>
-    );
-  }
-
-  if (error || !summary) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-
-        <TouchableOpacity style={styles.retryButton} onPress={reload}>
-          <Text style={styles.retryButtonText}>Tentar novamente</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  const { summary, loading, syncing, error, reload, syncOrbitalData } =
+    useOrbitalData();
 
   function renderOrbitalCard(item: OrbitalData) {
     return (
@@ -66,6 +47,7 @@ export function OrbitalDataScreen() {
 
         <Text style={styles.source}>{item.fonte}</Text>
         <Text style={styles.location}>{item.localizacao}</Text>
+        <Text style={styles.collectionDate}>Coleta: {item.dataColeta}</Text>
 
         <View style={styles.metricBox}>
           <View style={styles.metricRow}>
@@ -100,6 +82,31 @@ export function OrbitalDataScreen() {
     );
   }
 
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator color={colors.primary} />
+        <Text style={styles.loadingText}>Carregando dados orbitais...</Text>
+      </View>
+    );
+  }
+
+  if (error && !summary) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+
+        <TouchableOpacity style={styles.retryButton} onPress={reload}>
+          <Text style={styles.retryButtonText}>Tentar novamente</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!summary) {
+    return null;
+  }
+
   return (
     <FlatList
       style={styles.container}
@@ -114,6 +121,12 @@ export function OrbitalDataScreen() {
             Métricas espaciais usadas para calibrar o cultivo e apoiar a IA.
           </Text>
 
+          {error ? (
+            <View style={styles.inlineError}>
+              <Text style={styles.inlineErrorText}>{error}</Text>
+            </View>
+          ) : null}
+
           <View style={styles.summaryCard}>
             <Text style={styles.summaryLabel}>Fazenda monitorada</Text>
             <Text style={styles.summaryValue}>{summary.fazendaNome}</Text>
@@ -124,7 +137,37 @@ export function OrbitalDataScreen() {
             </Text>
           </View>
 
+          <TouchableOpacity
+            style={[styles.syncButton, syncing && styles.syncButtonDisabled]}
+            onPress={syncOrbitalData}
+            disabled={syncing}
+            activeOpacity={0.85}
+          >
+            {syncing ? (
+              <ActivityIndicator color={colors.textLight} />
+            ) : (
+              <>
+                <Ionicons
+                  name="sync-outline"
+                  size={18}
+                  color={colors.textLight}
+                />
+                <Text style={styles.syncButtonText}>
+                  Sincronizar NASA POWER
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+
           <Text style={styles.sectionTitle}>Fontes orbitais</Text>
+        </View>
+      }
+      ListEmptyComponent={
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>Nenhum dado orbital encontrado</Text>
+          <Text style={styles.emptyText}>
+            Toque em sincronizar para buscar dados orbitais da fazenda.
+          </Text>
         </View>
       }
       renderItem={({ item }) => renderOrbitalCard(item)}
@@ -137,10 +180,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+
   content: {
     padding: spacing.xl,
     paddingBottom: spacing.xxl,
   },
+
   centerContainer: {
     flex: 1,
     backgroundColor: colors.background,
@@ -148,66 +193,114 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: spacing.xl,
   },
+
   loadingText: {
     color: colors.secondary,
     fontSize: typography.body,
     marginTop: spacing.md,
   },
+
   errorText: {
     color: colors.textLight,
     fontSize: typography.body,
     textAlign: "center",
     marginBottom: spacing.lg,
   },
+
   retryButton: {
     backgroundColor: colors.primary,
     borderRadius: 12,
     padding: spacing.md,
   },
+
   retryButtonText: {
     color: colors.textLight,
     fontWeight: "bold",
   },
+
   title: {
     color: colors.textLight,
     fontSize: typography.title,
     fontWeight: "bold",
     marginBottom: spacing.sm,
   },
+
   subtitle: {
     color: colors.secondary,
     fontSize: typography.body,
     marginBottom: spacing.xl,
+    lineHeight: 22,
   },
+
+  inlineError: {
+    backgroundColor: "rgba(220, 38, 38, 0.12)",
+    borderColor: "rgba(220, 38, 38, 0.28)",
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+
+  inlineErrorText: {
+    color: colors.textLight,
+    fontSize: typography.small,
+  },
+
   summaryCard: {
     backgroundColor: colors.surface,
     borderRadius: 16,
     padding: spacing.lg,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.md,
   },
+
   summaryLabel: {
     color: colors.muted,
     fontSize: typography.caption,
     marginTop: spacing.sm,
   },
+
   summaryValue: {
     color: colors.text,
     fontSize: typography.body,
     fontWeight: "bold",
     marginTop: spacing.xs,
   },
+
+  syncButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 14,
+    padding: spacing.md,
+    marginBottom: spacing.xl,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+  },
+
+  syncButtonDisabled: {
+    opacity: 0.7,
+  },
+
+  syncButtonText: {
+    color: colors.textLight,
+    fontSize: typography.body,
+    fontWeight: "800",
+    marginLeft: 8,
+  },
+
   sectionTitle: {
     color: colors.textLight,
     fontSize: typography.subtitle,
     fontWeight: "bold",
     marginBottom: spacing.md,
   },
+
   card: {
     backgroundColor: colors.surface,
     borderRadius: 16,
     padding: spacing.lg,
     marginBottom: spacing.md,
   },
+
   riskBadge: {
     alignSelf: "flex-start",
     borderRadius: 999,
@@ -215,71 +308,112 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     marginBottom: spacing.md,
   },
+
   riskText: {
     color: colors.textLight,
     fontSize: typography.small,
     fontWeight: "bold",
   },
+
   source: {
     color: colors.text,
     fontSize: typography.subtitle,
     fontWeight: "bold",
   },
+
   location: {
     color: colors.muted,
     fontSize: typography.caption,
     marginTop: spacing.xs,
+  },
+
+  collectionDate: {
+    color: colors.carbon,
+    fontSize: typography.caption,
+    fontWeight: "bold",
+    marginTop: spacing.xs,
     marginBottom: spacing.md,
   },
+
   metricBox: {
     backgroundColor: "#ecfeff",
     borderRadius: 12,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
+
   metricRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: spacing.md,
     marginBottom: spacing.sm,
   },
+
   metricLabel: {
     color: colors.muted,
     fontSize: typography.caption,
     flex: 1,
   },
+
   metricValue: {
     color: colors.text,
     fontSize: typography.caption,
     fontWeight: "bold",
+    textAlign: "right",
+    flex: 1,
   },
+
   weatherTitle: {
     color: colors.carbon,
     fontSize: typography.caption,
     fontWeight: "bold",
     marginTop: spacing.sm,
   },
+
   weatherText: {
     color: colors.text,
     fontSize: typography.caption,
     lineHeight: 20,
     marginTop: spacing.xs,
   },
+
   impactTitle: {
     color: colors.carbon,
     fontSize: typography.caption,
     fontWeight: "bold",
     marginTop: spacing.md,
   },
+
   impactText: {
     color: colors.text,
     fontSize: typography.caption,
     lineHeight: 20,
     marginTop: spacing.xs,
   },
+
   updated: {
     color: colors.muted,
     fontSize: typography.small,
     marginTop: spacing.md,
+  },
+
+  emptyCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: spacing.lg,
+    alignItems: "center",
+  },
+
+  emptyTitle: {
+    color: colors.text,
+    fontSize: typography.subtitle,
+    fontWeight: "bold",
+    marginBottom: spacing.sm,
+  },
+
+  emptyText: {
+    color: colors.muted,
+    fontSize: typography.caption,
+    textAlign: "center",
+    lineHeight: 20,
   },
 });

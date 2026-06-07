@@ -2,11 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import { TransactionRepository } from "../../data/repositories/TransactionRepository";
 import { TransactionSummary } from "../../domain/models/Transaction";
-import { useAuth } from "../contexts/AuthContext";
 
 export function useTransactions() {
-  const { session } = useAuth();
-
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -16,9 +13,7 @@ export function useTransactions() {
       setLoading(true);
       setError("");
 
-      const data = await TransactionRepository.getTransactions(
-        session?.usuario.carteiraId
-      );
+      const data = await TransactionRepository.getTransactions();
 
       setSummary(data);
     } catch {
@@ -26,7 +21,7 @@ export function useTransactions() {
     } finally {
       setLoading(false);
     }
-  }, [session?.usuario.carteiraId]);
+  }, []);
 
   useEffect(() => {
     loadTransactions();
