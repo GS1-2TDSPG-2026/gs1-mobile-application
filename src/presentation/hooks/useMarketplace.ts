@@ -80,19 +80,38 @@ export function useMarketplace() {
     [loadLots]
   );
 
+    const buyLot = useCallback(
+  async (lot: MarketplaceLot) => {
+    try {
+      setProcessingId(lot.id);
+      setError("");
+
+      await MarketplaceRepository.buyBiomassLot(lot);
+      await loadLots();
+    } catch {
+      setError("Não foi possível comprar o lote.");
+      throw new Error("Erro ao comprar lote");
+    } finally {
+      setProcessingId(null);
+    }
+  },
+  [loadLots]
+);
+
   useEffect(() => {
     loadLots();
   }, [loadLots]);
 
-  return {
-    lots,
-    loading,
-    submitting,
-    processingId,
-    error,
-    reload: loadLots,
-    createLot,
-    updateStatus,
-    deleteLot,
-  };
+return {
+  lots,
+  loading,
+  submitting,
+  processingId,
+  error,
+  reload: loadLots,
+  createLot,
+  updateStatus,
+  deleteLot,
+  buyLot,
+};
 }

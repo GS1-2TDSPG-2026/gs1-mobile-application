@@ -8,6 +8,7 @@ import React, {
 
 import {
   AuthSession,
+  AuthUser,
   LoginRequest,
   RegisterRequest,
 } from "../../domain/models/Auth";
@@ -21,6 +22,7 @@ type AuthContextData = {
   signUp: (data: RegisterRequest) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfileImage: (imageUri: string) => Promise<void>;
+  updateSessionUser: (data: Partial<AuthUser>) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -61,7 +63,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setSession(null);
   }
 
-  async function updateProfileImage(imageUri: string) {
+  async function updateSessionUser(data: Partial<AuthUser>) {
     if (!session) {
       return;
     }
@@ -70,12 +72,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       ...session,
       usuario: {
         ...session.usuario,
-        fotoUrl: imageUri,
+        ...data,
       },
     };
 
     await sessionStorage.save(updatedSession);
     setSession(updatedSession);
+  }
+
+  async function updateProfileImage(imageUri: string) {
+    await updateSessionUser({
+      fotoUrl: imageUri,
+    });
   }
 
   useEffect(() => {
@@ -91,6 +99,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         signUp,
         signOut,
         updateProfileImage,
+        updateSessionUser,
       }}
     >
       {children}

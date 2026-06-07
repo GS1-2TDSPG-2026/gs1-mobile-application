@@ -45,17 +45,18 @@ const tabs: MarketplaceTab[] = [
 ];
 
 export function MarketplaceScreen() {
-  const {
-    lots,
-    loading,
-    submitting,
-    processingId,
-    error,
-    reload,
-    createLot,
-    updateStatus,
-    deleteLot,
-  } = useMarketplace();
+const {
+  lots,
+  loading,
+  submitting,
+  processingId,
+  error,
+  reload,
+  createLot,
+  updateStatus,
+  deleteLot,
+  buyLot,
+} = useMarketplace();
 
   const [nome, setNome] = useState("");
   const [pesoKg, setPesoKg] = useState("");
@@ -288,32 +289,62 @@ export function MarketplaceScreen() {
             </TouchableOpacity>
           )}
 
-          {(isAvailable || isReserved) && (
+          {isAvailable && (
             <TouchableOpacity
               style={styles.primaryButton}
-              onPress={() => updateStatus(item.id, "VENDIDO")}
+              onPress={() => {
+                Alert.alert(
+                  "Comprar lote",
+                  `Deseja comprar o lote "${item.nome}" por R$ ${item.preco.toLocaleString(
+                    "pt-BR"
+                  )}?`,
+                  [
+                    {
+                      text: "Cancelar",
+                      style: "cancel",
+                    },
+                    {
+                      text: "Comprar",
+                      onPress: async () => {
+                        try {
+                          await buyLot(item);
+                          Alert.alert(
+                            "Compra realizada",
+                            "A transação foi registrada no banco e o lote foi marcado como vendido."
+                          );
+                        } catch {
+                          Alert.alert(
+                            "Erro na compra",
+                            "Não foi possível comprar este lote. Ele pode não estar disponível."
+                          );
+                        }
+                      },
+                    },
+                  ]
+                );
+              }}
               disabled={processingId === item.id}
               activeOpacity={0.85}
             >
-              <Text style={styles.primaryButtonText}>Vender</Text>
+              <Text style={styles.primaryButtonText}>Comprar</Text>
             </TouchableOpacity>
           )}
 
-{!isSold ? (
-  <TouchableOpacity
-    style={styles.deleteButton}
-    onPress={() => deleteLot(item.id)}
-    disabled={processingId === item.id}
-    activeOpacity={0.85}
-  >
-    <Text style={styles.deleteButtonText}>Excluir</Text>
-  </TouchableOpacity>
-) : (
-  <View style={styles.finalizedBadge}>
-    <Ionicons name="lock-closed-outline" size={14} color={colors.success} />
-    <Text style={styles.finalizedBadgeText}>Venda finalizada</Text>
-  </View>
-)}
+          {!isSold ? (
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => deleteLot(item.id)}
+              disabled={processingId === item.id}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.deleteButtonText}>Excluir</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.finalizedBadge}>
+              <Ionicons name="lock-closed-outline" size={14} color={colors.success} />
+              <Text style={styles.finalizedBadgeText}>Venda finalizada</Text>
+            </View>
+          )}
         </View>
 
         {processingId === item.id && (

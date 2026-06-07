@@ -5,6 +5,7 @@ import {
 } from "../../domain/models/MarketplaceLot";
 import { apiClient } from "../api/apiClient";
 
+
 type ApiPage<T> = {
   content: T[];
 };
@@ -80,6 +81,16 @@ export const MarketplaceRepository = {
       status,
     });
   },
+
+  async buyBiomassLot(lot: MarketplaceLot): Promise<void> {
+  await apiClient.post("/marketplace/transacoes", {
+    idLote: lot.id,
+    idCredito: null,
+    tipoTransacao: "COMPRA_BIOMASSA",
+    quantidade: lot.pesoKg,
+    valorTotal: lot.preco,
+  });
+},
 
   async deleteLot(lotId: number): Promise<void> {
     await apiClient.delete(`/marketplace/lotes/${lotId}`);
