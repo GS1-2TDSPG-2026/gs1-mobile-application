@@ -13,15 +13,28 @@ export function AppRoutes() {
     return <LoadingState message="Restaurando sessão..." />;
   }
 
-  return (
-    <NavigationContainer>
-      {!session ? (
-        <AuthRoutes />
-      ) : session.usuario.perfil === "OPERADOR_FAZENDA" ? (
-        <OperatorRoutes />
-      ) : (
-        <InvestorRoutes />
-      )}
-    </NavigationContainer>
-  );
+  function renderPrivateRoutes() {
+    if (!session) {
+      return <AuthRoutes />;
+    }
+
+    if (session.usuario.perfil === "OPERADOR_CAMPO") {
+      return <OperatorRoutes />;
+    }
+
+    if (
+      session.usuario.perfil === "INVESTIDOR" ||
+      session.usuario.perfil === "COMPRADOR_B2B"
+    ) {
+      return <InvestorRoutes />;
+    }
+
+    if (session.usuario.perfil === "ADMIN") {
+      return <OperatorRoutes />;
+    }
+
+    return <AuthRoutes />;
+  }
+
+  return <NavigationContainer>{renderPrivateRoutes()}</NavigationContainer>;
 }

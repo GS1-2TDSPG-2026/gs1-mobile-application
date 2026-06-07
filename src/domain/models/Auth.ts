@@ -1,6 +1,7 @@
 export type UserRole =
-  | "OPERADOR_FAZENDA"
-  | "INVESTIDOR_ESG"
+  | "ADMIN"
+  | "OPERADOR_CAMPO"
+  | "INVESTIDOR"
   | "COMPRADOR_B2B";
 
 export type AuthUser = {
@@ -22,6 +23,7 @@ export type RegisterRequest = {
   nome: string;
   email: string;
   senha: string;
+  telefone?: string;
   perfil: UserRole;
 };
 

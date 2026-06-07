@@ -18,8 +18,8 @@ export function LoginScreen() {
   const { signIn } = useAuth();
 
   const navigation = useNavigation<any>();
-  const [email, setEmail] = useState("operador@phycocarbon.com");
-  const [senha, setSenha] = useState("123456");
+  const [email, setEmail] = useState("[EMAIL_ADDRESS]");
+  const [senha, setSenha] = useState("[PASSWORD]");
   const [loading, setLoading] = useState(false);
 
   async function handleLogin() {
@@ -38,7 +38,7 @@ export function LoginScreen() {
     } catch {
       Alert.alert(
         "Erro no login",
-        "Use operador@phycocarbon.com, investidor@phycocarbon.com ou comprador@phycocarbon.com com senha 123456."
+        "Verifique se a API Java está rodando e use um usuário existente do DML."
       );
     } finally {
       setLoading(false);
@@ -98,7 +98,7 @@ export function LoginScreen() {
       </TouchableOpacity>
 
       <Text style={styles.hint}>
-        Demo: operador@phycocarbon.com | investidor@phycocarbon.com | comprador@phycocarbon.com
+        Teste: joao.almeida@algaspace.com | contato@biocapital.com.br | compras@nutrialga.com.br
       </Text>
     </View>
   );

@@ -26,7 +26,7 @@ export function RegisterScreen() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [perfil, setPerfil] = useState<UserRole>("OPERADOR_FAZENDA");
+  const [perfil, setPerfil] = useState<UserRole>("OPERADOR_CAMPO");
   const [loading, setLoading] = useState(false);
 
   async function handleRegister() {
@@ -100,7 +100,7 @@ export function RegisterScreen() {
         <Text style={styles.title}>Criar conta</Text>
 
         <Text style={styles.subtitle}>
-          Cadastre um usuário mockado para testar a navegação por perfil.
+          Cadastre um usuário real na API Java para acessar o app por perfil.
         </Text>
 
         <View style={styles.card}>
@@ -137,8 +137,8 @@ export function RegisterScreen() {
           <Text style={styles.label}>Perfil de acesso</Text>
 
           <View style={styles.profileSelector}>
-            {renderProfileButton("Operador", "OPERADOR_FAZENDA")}
-            {renderProfileButton("Investidor", "INVESTIDOR_ESG")}
+            {renderProfileButton("Operador", "OPERADOR_CAMPO")}
+            {renderProfileButton("Investidor", "INVESTIDOR")}
             {renderProfileButton("Comprador", "COMPRADOR_B2B")}
           </View>
 
