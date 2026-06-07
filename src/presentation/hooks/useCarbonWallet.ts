@@ -9,6 +9,7 @@ export function useCarbonWallet() {
 
   const [wallet, setWallet] = useState<CarbonWalletSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [validatingId, setValidatingId] = useState<number | null>(null);
   const [error, setError] = useState("");
 
   const loadWallet = useCallback(async () => {
@@ -17,7 +18,7 @@ export function useCarbonWallet() {
       setError("");
 
       const data = await CarbonWalletRepository.getWalletSummary(
-        session?.usuario.carteiraId
+        session?.usuario.fazendaId
       );
 
       setWallet(data);
@@ -26,7 +27,21 @@ export function useCarbonWallet() {
     } finally {
       setLoading(false);
     }
-  }, [session?.usuario.carteiraId]);
+  }, [session?.usuario.fazendaId]);
+
+  async function validateCredit(id: number) {
+    try {
+      setValidatingId(id);
+      setError("");
+
+      await CarbonWalletRepository.validateCredit(id);
+      await loadWallet();
+    } catch {
+      setError("Não foi possível validar o crédito de carbono.");
+    } finally {
+      setValidatingId(null);
+    }
+  }
 
   useEffect(() => {
     loadWallet();
@@ -35,7 +50,9 @@ export function useCarbonWallet() {
   return {
     wallet,
     loading,
+    validatingId,
     error,
     reload: loadWallet,
+    validateCredit,
   };
 }
