@@ -15,6 +15,23 @@ export type Farm = {
   nomeResponsavel: string;
 };
 
+export type CreateFarmRequest = {
+  nome: string;
+  cidade: string;
+  uf: string;
+  latitude: number;
+  longitude: number;
+};
+
+export type UpdateFarmRequest = {
+  nome?: string;
+  cidade?: string;
+  uf?: string;
+  latitude?: number;
+  longitude?: number;
+  status?: FarmStatus;
+};
+
 export type Tank = {
   id: number;
   idFazenda: number;
@@ -28,6 +45,28 @@ export type Tank = {
   temperaturaMax: number;
   status: TankStatus;
   dtInstalacao: string;
+};
+
+export type CreateTankRequest = {
+  idFazenda: number;
+  codigoTanque: string;
+  tipoAlga: string;
+  capacidadeLitros: number;
+  phMin: number;
+  phMax: number;
+  temperaturaMin: number;
+  temperaturaMax: number;
+  dtInstalacao: string;
+};
+
+export type UpdateTankRequest = {
+  tipoAlga?: string;
+  capacidadeLitros?: number;
+  phMin?: number;
+  phMax?: number;
+  temperaturaMin?: number;
+  temperaturaMax?: number;
+  status?: TankStatus;
 };
 
 export type FarmDashboard = {

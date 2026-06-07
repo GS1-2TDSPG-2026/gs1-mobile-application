@@ -1,4 +1,12 @@
-import { Farm, FarmDashboard, Tank } from "../../domain/models/Farm";
+import {
+  CreateFarmRequest,
+  CreateTankRequest,
+  Farm,
+  FarmDashboard,
+  Tank,
+  UpdateFarmRequest,
+  UpdateTankRequest,
+} from "../../domain/models/Farm";
 import { apiClient } from "../api/apiClient";
 
 type ApiPage<T> = {
@@ -111,22 +119,40 @@ function toFarmDashboard(apiDashboard: ApiFarmDashboardResponse): FarmDashboard 
 
 export const FarmRepository = {
   async getMyFarms(): Promise<Farm[]> {
-    const response = await apiClient.get<ApiFarmResponse[]>("/fazendas/minhas");
-
-    if (response.data.length > 0) {
+    try {
+      const response = await apiClient.get<ApiFarmResponse[]>("/fazendas/minhas");
       return response.data.map(toFarm);
-    }
+    } catch {
+      const response = await apiClient.get<ApiPage<ApiFarmResponse>>(
+        "/fazendas",
+        {
+          params: {
+            size: 50,
+          },
+        }
+      );
 
-    const fallbackResponse = await apiClient.get<ApiPage<ApiFarmResponse>>(
-      "/fazendas",
-      {
-        params: {
-          size: 50,
-        },
-      }
+      return response.data.content.map(toFarm);
+    }
+  },
+
+  async createFarm(data: CreateFarmRequest): Promise<Farm> {
+    const response = await apiClient.post<ApiFarmResponse>("/fazendas", data);
+
+    return toFarm(response.data);
+  },
+
+  async updateFarm(id: number, data: UpdateFarmRequest): Promise<Farm> {
+    const response = await apiClient.put<ApiFarmResponse>(
+      `/fazendas/${id}`,
+      data
     );
 
-    return fallbackResponse.data.content.map(toFarm);
+    return toFarm(response.data);
+  },
+
+  async deleteFarm(id: number): Promise<void> {
+    await apiClient.delete(`/fazendas/${id}`);
   },
 
   async getFarmDashboard(farmId: number): Promise<FarmDashboard> {
@@ -143,5 +169,24 @@ export const FarmRepository = {
     );
 
     return response.data.map(toTank);
+  },
+
+  async createTank(data: CreateTankRequest): Promise<Tank> {
+    const response = await apiClient.post<ApiTankResponse>("/tanques", data);
+
+    return toTank(response.data);
+  },
+
+  async updateTank(id: number, data: UpdateTankRequest): Promise<Tank> {
+    const response = await apiClient.put<ApiTankResponse>(
+      `/tanques/${id}`,
+      data
+    );
+
+    return toTank(response.data);
+  },
+
+  async deleteTank(id: number): Promise<void> {
+    await apiClient.delete(`/tanques/${id}`);
   },
 };
