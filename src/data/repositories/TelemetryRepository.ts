@@ -47,6 +47,8 @@ type ApiFazenda = {
 type ApiDispositivo = {
   idDispositivo?: number;
   IdDispositivo?: number;
+  idTanque?: number;
+  IdTanque?: number;
   ativo?: string;
   Ativo?: string;
 };
@@ -83,7 +85,7 @@ function getMetricId(item: ApiMetricaTanque): number {
   return toNumber(item.idMetrica ?? item.IdMetrica ?? Date.now());
 }
 
-function getTankId(item: ApiMetricaTanque | ApiTanque): number {
+function getTankId(item: ApiMetricaTanque | ApiTanque | ApiDispositivo): number {
   return toNumber(item.idTanque ?? item.IdTanque);
 }
 
@@ -151,13 +153,12 @@ function formatDateTime(value?: string): string {
     return "sem previsão IA cadastrada";
   }
 
-  return `Pico previsto para ${date.toLocaleDateString("pt-BR")} às ${date.toLocaleTimeString(
-    "pt-BR",
-    {
-      hour: "2-digit",
-      minute: "2-digit",
-    }
-  )}`;
+  return `Pico previsto para ${date.toLocaleDateString(
+    "pt-BR"
+  )} às ${date.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
 }
 
 function parsePayloadStatus(payload?: string | null): string {
@@ -213,6 +214,12 @@ function getTankName(item: ApiMetricaTanque, tanques: ApiTanque[]): string {
   return tanque?.codigoTanque ?? tanque?.CodigoTanque ?? `Tanque ${tankId}`;
 }
 
+function getTankCode(tanque: ApiTanque): string {
+  const tankId = getTankId(tanque);
+
+  return tanque.codigoTanque ?? tanque.CodigoTanque ?? `Tanque ${tankId}`;
+}
+
 function mapMetric(item: ApiMetricaTanque, tanques: ApiTanque[]): TankMetric {
   return {
     id: getMetricId(item),
@@ -226,7 +233,22 @@ function mapMetric(item: ApiMetricaTanque, tanques: ApiTanque[]): TankMetric {
   };
 }
 
-function getLatestMetricsByTank(metricas: ApiMetricaTanque[]): ApiMetricaTanque[] {
+function mapTankWithoutMetric(tanque: ApiTanque): TankMetric {
+  return {
+    id: getTankId(tanque),
+    nomeTanque: getTankCode(tanque),
+    ph: 0,
+    temperatura: 0,
+    turbidez: 0,
+    luminosidade: 0,
+    status: "ATENCAO",
+    ultimaLeitura: "sem leitura",
+  };
+}
+
+function getLatestMetricsByTank(
+  metricas: ApiMetricaTanque[]
+): ApiMetricaTanque[] {
   const latestByTank = new Map<number, ApiMetricaTanque>();
 
   metricas.forEach((metrica) => {
@@ -265,6 +287,14 @@ function getLatestPrediction(previsoes: ApiPrevisaoIa[]): ApiPrevisaoIa | null {
   )[0];
 }
 
+function isDeviceActive(dispositivo: ApiDispositivo): boolean {
+  return (
+    String(dispositivo.ativo ?? dispositivo.Ativo ?? "")
+      .toUpperCase()
+      .trim() === "S"
+  );
+}
+
 export const TelemetryRepository = {
   async getDashboard(fazendaId?: number): Promise<TelemetryDashboard> {
     const [metricas, tanques, fazendas, dispositivos, previsoes] =
@@ -276,49 +306,115 @@ export const TelemetryRepository = {
         safeGet<ApiPrevisaoIa>("/PrevisaoIa"),
       ]);
 
-    const tanquesDaFazenda = fazendaId
-      ? tanques.filter((tanque) => getFazendaId(tanque) === fazendaId)
-      : [];
+    const ultimaMetricaGeral = [...metricas].sort(
+      (a, b) =>
+        getDateValue(b.dtLeitura ?? b.DtLeitura) -
+        getDateValue(a.dtLeitura ?? a.DtLeitura)
+    )[0];
 
-    const deveFiltrarPorFazenda =
-      fazendaId !== undefined && tanquesDaFazenda.length > 0;
+    const idTanqueUltimaMetrica = ultimaMetricaGeral
+      ? getTankId(ultimaMetricaGeral)
+      : 0;
 
-    const idsTanquesDaFazenda = new Set(tanquesDaFazenda.map(getTankId));
+    const tanqueUltimaMetrica = tanques.find(
+      (tanque) => getTankId(tanque) === idTanqueUltimaMetrica
+    );
 
-    const metricasFiltradas = deveFiltrarPorFazenda
-      ? metricas.filter((metrica) => idsTanquesDaFazenda.has(getTankId(metrica)))
-      : metricas;
+    const idFazendaDaUltimaMetrica = tanqueUltimaMetrica
+      ? getFazendaId(tanqueUltimaMetrica)
+      : undefined;
+
+    const dispositivoAtivo = dispositivos.find(isDeviceActive);
+
+    const idTanqueDispositivoAtivo = dispositivoAtivo
+      ? getTankId(dispositivoAtivo)
+      : 0;
+
+    const tanqueDispositivoAtivo = tanques.find(
+      (tanque) => getTankId(tanque) === idTanqueDispositivoAtivo
+    );
+
+    const idFazendaDoDispositivoAtivo = tanqueDispositivoAtivo
+      ? getFazendaId(tanqueDispositivoAtivo)
+      : undefined;
+
+    const idsFazendasParaExibir = new Set<number>();
+
+    if (fazendaId) {
+      idsFazendasParaExibir.add(fazendaId);
+    }
+
+    if (idFazendaDaUltimaMetrica) {
+      idsFazendasParaExibir.add(idFazendaDaUltimaMetrica);
+    }
+
+    if (idFazendaDoDispositivoAtivo) {
+      idsFazendasParaExibir.add(idFazendaDoDispositivoAtivo);
+    }
+
+    if (idsFazendasParaExibir.size === 0 && fazendas[0]) {
+      idsFazendasParaExibir.add(getFazendaId(fazendas[0]));
+    }
+
+    const fazendasSelecionadas = fazendas.filter((fazenda) =>
+      idsFazendasParaExibir.has(getFazendaId(fazenda))
+    );
+
+    const fazendaSelecionada = fazendasSelecionadas[0];
+
+    const tanquesDaFazenda = tanques.filter((tanque) =>
+      idsFazendasParaExibir.has(getFazendaId(tanque))
+    );
+
+    const idsTanquesDaFazenda = new Set(
+      tanquesDaFazenda.map((tanque) => getTankId(tanque))
+    );
+
+    const metricasDaFazenda = metricas.filter((metrica) =>
+      idsTanquesDaFazenda.has(getTankId(metrica))
+    );
+
+    const ultimasMetricasDaFazenda =
+      getLatestMetricsByTank(metricasDaFazenda);
+
+    const metricasPorTanque = new Map<number, ApiMetricaTanque>();
+
+    ultimasMetricasDaFazenda.forEach((metrica) => {
+      metricasPorTanque.set(getTankId(metrica), metrica);
+    });
+
+    const cardsTanques = tanquesDaFazenda.map((tanque) => {
+      const idTanque = getTankId(tanque);
+      const metrica = metricasPorTanque.get(idTanque);
+
+      if (!metrica) {
+        return mapTankWithoutMetric(tanque);
+      }
+
+      return mapMetric(metrica, tanques);
+    });
 
     const latestPrediction = getLatestPrediction(previsoes);
 
-    const fazendaSelecionada = fazendas.find(
-      (fazenda) => getFazendaId(fazenda) === fazendaId
-    );
-
-    const existeDispositivoAtivo = dispositivos.some(
-      (dispositivo) =>
-        String(dispositivo.ativo ?? dispositivo.Ativo ?? "")
-          .toUpperCase()
-          .trim() === "S"
-    );
+    const existeDispositivoAtivo = dispositivos.some(isDeviceActive);
 
     return {
       fazendaNome:
-        fazendaSelecionada?.nome ??
-        fazendaSelecionada?.Nome ??
-        fazendas[0]?.nome ??
-        fazendas[0]?.Nome ??
-        "Fazenda Phycocarbon",
+        fazendasSelecionadas.length > 1
+          ? "Fazendas monitoradas"
+          : fazendaSelecionada?.nome ??
+            fazendaSelecionada?.Nome ??
+            "Fazenda Phycocarbon",
       dispositivoStatus: existeDispositivoAtivo ? "ONLINE" : "OFFLINE",
       previsaoBiomassa: formatDateTime(
         latestPrediction?.dtPicoPrevisto ?? latestPrediction?.DtPicoPrevisto
       ),
       confiancaIA: Math.round(
-        toNumber(latestPrediction?.confiancaPct ?? latestPrediction?.ConfiancaPct)
+        toNumber(
+          latestPrediction?.confiancaPct ?? latestPrediction?.ConfiancaPct
+        )
       ),
-      metricas: getLatestMetricsByTank(metricasFiltradas).map((metrica) =>
-        mapMetric(metrica, tanques)
-      ),
+      metricas: cardsTanques,
     };
   },
 };
