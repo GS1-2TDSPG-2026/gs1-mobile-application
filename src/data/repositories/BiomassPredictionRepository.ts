@@ -1,60 +1,125 @@
-import { BiomassPredictionSummary } from "../../domain/models/BiomassPrediction";
+import {
+  BiomassPredictionSummary,
+  PredictionRiskLevel,
+} from "../../domain/models/BiomassPrediction";
+import { iaApiClient } from "../api/iaApiClient";
+
+type IaPredictionRequest = {
+  tanqueId: number;
+  ph: number;
+  temperatura: number;
+  turbidez: number;
+  luminosidade: number;
+  radiacaoPar: number;
+};
+
+type IaPredictionResponse = {
+  tanqueId: number;
+  biomassaEstimada: number;
+  dataPrevistaColheita: string;
+  confianca: number;
+  status: string;
+};
+
+function formatDate(date: string) {
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "Indefinida";
+  }
+
+  return parsedDate.toLocaleDateString("pt-BR");
+}
+
+function getRiskFromStatus(status: string): PredictionRiskLevel {
+  const normalizedStatus = status.toUpperCase();
+
+  if (
+    normalizedStatus.includes("CRITICO") ||
+    normalizedStatus.includes("RUIM") ||
+    normalizedStatus.includes("BAIXO")
+  ) {
+    return "ALTO";
+  }
+
+  if (
+    normalizedStatus.includes("MODERADO") ||
+    normalizedStatus.includes("ATENCAO") ||
+    normalizedStatus.includes("MÉDIO") ||
+    normalizedStatus.includes("MEDIO")
+  ) {
+    return "MEDIO";
+  }
+
+  return "BAIXO";
+}
+
+function getRecommendation(status: string) {
+  const normalizedStatus = status.toUpperCase();
+
+  if (
+    normalizedStatus.includes("IDEAL") ||
+    normalizedStatus.includes("BOM")
+  ) {
+    return "Manter parâmetros atuais. Crescimento dentro do esperado.";
+  }
+
+  if (
+    normalizedStatus.includes("MODERADO") ||
+    normalizedStatus.includes("ATENCAO") ||
+    normalizedStatus.includes("MEDIO")
+  ) {
+    return "Monitorar pH, temperatura e radiação. Crescimento aceitável, mas exige acompanhamento.";
+  }
+
+  return "Corrigir os parâmetros do tanque antes da próxima janela de crescimento.";
+}
 
 export const BiomassPredictionRepository = {
   async getPredictions(fazendaId?: number): Promise<BiomassPredictionSummary> {
     console.log("Buscando previsões IA da fazenda:", fazendaId);
 
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    const payload: IaPredictionRequest = {
+      tanqueId: 10,
+      ph: 7.2,
+      temperatura: 26.5,
+      turbidez: 38.0,
+      luminosidade: 820,
+      radiacaoPar: 5.7,
+    };
+
+    const response = await iaApiClient.post<IaPredictionResponse>(
+      "/predict",
+      payload
+    );
+
+    const prediction = response.data;
+
+    const biomassaPrevista = Number(prediction.biomassaEstimada.toFixed(2));
+    const biomassaAtual = Number((biomassaPrevista * 0.75).toFixed(2));
+
+    const crescimentoPercentual = Number(
+      (((biomassaPrevista - biomassaAtual) / biomassaAtual) * 100).toFixed(0)
+    );
 
     return {
-      fazendaNome: "Cooperativa Juazeiro",
+      fazendaNome: "Fazenda 5 - Tanque 10",
       modeloIA: "Random Forest Regressor",
-      ultimaAtualizacao: "há 4 min",
+      ultimaAtualizacao: "agora",
       previsoes: [
         {
-          id: 1,
-          tanque: "Tanque A01",
-          biomassaAtual: 1.8,
-          biomassaPrevista48h: 2.6,
-          crescimentoPercentual: 44,
-          confiancaModelo: 91,
-          dataColheitaEstimada: "30/05/2026 às 08:00",
-          radiacaoPAR: 820,
-          indiceUV: 7.4,
-          nebulosidade: 18,
-          risco: "BAIXO",
-          recomendacao:
-            "Manter parâmetros atuais. Tanque próximo do ponto ideal de colheita.",
-        },
-        {
-          id: 2,
-          tanque: "Tanque B02",
-          biomassaAtual: 1.4,
-          biomassaPrevista48h: 1.9,
-          crescimentoPercentual: 35,
-          confiancaModelo: 84,
-          dataColheitaEstimada: "31/05/2026 às 10:30",
-          radiacaoPAR: 760,
-          indiceUV: 6.8,
-          nebulosidade: 25,
-          risco: "MEDIO",
-          recomendacao:
-            "Monitorar temperatura e pH. Crescimento está aceitável, mas exige atenção.",
-        },
-        {
-          id: 3,
-          tanque: "Tanque C03",
-          biomassaAtual: 1.1,
-          biomassaPrevista48h: 1.2,
-          crescimentoPercentual: 9,
-          confiancaModelo: 72,
-          dataColheitaEstimada: "Indefinida",
-          radiacaoPAR: 690,
-          indiceUV: 5.9,
-          nebulosidade: 42,
-          risco: "ALTO",
-          recomendacao:
-            "Corrigir pH e temperatura antes da próxima janela de radiação solar.",
+          id: prediction.tanqueId,
+          tanque: `Tanque ${prediction.tanqueId}`,
+          biomassaAtual,
+          biomassaPrevista48h: biomassaPrevista,
+          crescimentoPercentual,
+          confiancaModelo: Math.round(prediction.confianca),
+          dataColheitaEstimada: formatDate(prediction.dataPrevistaColheita),
+          radiacaoPAR: payload.radiacaoPar,
+          indiceUV: Number((payload.radiacaoPar * 1.3).toFixed(1)),
+          nebulosidade: 0,
+          risco: getRiskFromStatus(prediction.status),
+          recomendacao: getRecommendation(prediction.status),
         },
       ],
     };
