@@ -2,7 +2,7 @@ import axios from "axios";
 
 import { sessionStorage } from "../storage/sessionStorage";
 
-const API_BASE_URL = "http://57.156.65.216:8080/api";
+const API_BASE_URL = "https://gs1-java-devops.onrender.com/api";
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

@@ -37,6 +37,25 @@ const testAccounts = [
   },
 ];
 
+function getLoginErrorMessage(error: unknown): string {
+  const apiError = error as {
+    response?: {
+      status?: number;
+    };
+    request?: unknown;
+  };
+
+  if (apiError.response?.status === 401 || apiError.response?.status === 403) {
+    return "E-mail ou senha inválidos. Verifique os dados e tente novamente.";
+  }
+
+  if (apiError.request && !apiError.response) {
+    return "Não foi possível conectar à API Java. Verifique se o backend está rodando.";
+  }
+
+  return "Não foi possível entrar agora. Tente novamente em instantes.";
+}
+
 export function LoginScreen() {
   const { signIn } = useAuth();
   const navigation = useNavigation<any>();
@@ -59,11 +78,8 @@ export function LoginScreen() {
         email: email.trim(),
         senha,
       });
-    } catch {
-      Alert.alert(
-        "Erro no login",
-        "Verifique se a API Java está rodando e use um usuário existente do DML."
-      );
+    } catch (error) {
+      Alert.alert("Erro no login", getLoginErrorMessage(error));
     } finally {
       setLoading(false);
     }

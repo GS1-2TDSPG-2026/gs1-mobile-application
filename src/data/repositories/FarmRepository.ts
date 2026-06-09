@@ -118,23 +118,11 @@ function toFarmDashboard(apiDashboard: ApiFarmDashboardResponse): FarmDashboard 
 }
 
 export const FarmRepository = {
-  async getMyFarms(): Promise<Farm[]> {
-    try {
-      const response = await apiClient.get<ApiFarmResponse[]>("/fazendas/minhas");
-      return response.data.map(toFarm);
-    } catch {
-      const response = await apiClient.get<ApiPage<ApiFarmResponse>>(
-        "/fazendas",
-        {
-          params: {
-            size: 50,
-          },
-        }
-      );
+async getMyFarms(): Promise<Farm[]> {
+  const response = await apiClient.get<ApiFarmResponse[]>("/fazendas/minhas");
 
-      return response.data.content.map(toFarm);
-    }
-  },
+  return response.data.map(toFarm);
+},
 
   async createFarm(data: CreateFarmRequest): Promise<Farm> {
     const response = await apiClient.post<ApiFarmResponse>("/fazendas", data);

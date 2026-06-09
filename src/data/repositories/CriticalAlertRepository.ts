@@ -8,24 +8,68 @@ import {
 type ApiAlertaCritico = {
   idAlerta?: number;
   IdAlerta?: number;
+  id?: number;
+  Id?: number;
+
   idTanque?: number;
   IdTanque?: number;
+
+  tipo?: string;
+  Tipo?: string;
   tipoAlerta?: string;
   TipoAlerta?: string;
-  severidade?: string;
-  Severidade?: string;
+
   mensagem?: string;
   Mensagem?: string;
+
+  severidade?: string;
+  Severidade?: string;
+  nivel?: string;
+  Nivel?: string;
+
   status?: string;
   Status?: string;
+
+  dtCriacao?: string;
+  DtCriacao?: string;
   dtAlerta?: string;
   DtAlerta?: string;
+  criadoEm?: string;
+  CriadoEm?: string;
 };
 
 function toNumber(value: unknown, fallback = 0): number {
   const numberValue = Number(value);
 
   return Number.isFinite(numberValue) ? numberValue : fallback;
+}
+
+function getAlertId(alerta: ApiAlertaCritico): number {
+  return toNumber(alerta.idAlerta ?? alerta.IdAlerta ?? alerta.id ?? alerta.Id);
+}
+
+function getTankId(alerta: ApiAlertaCritico): number {
+  return toNumber(alerta.idTanque ?? alerta.IdTanque);
+}
+
+function normalizeSeverity(value?: string): CriticalAlertSeverity {
+  const normalized = String(value ?? "").toUpperCase().trim();
+
+  if (normalized.includes("CRITICO") || normalized.includes("CRITICAL")) {
+    return "CRITICO";
+  }
+
+  return "ATENCAO";
+}
+
+function normalizeStatus(value?: string): CriticalAlertStatus {
+  const normalized = String(value ?? "").toUpperCase().trim();
+
+  if (normalized.includes("RESOLVIDO") || normalized.includes("RESOLVED")) {
+    return "RESOLVIDO";
+  }
+
+  return "ABERTO";
 }
 
 function formatRelativeDate(value?: string): string {
@@ -67,54 +111,55 @@ function formatRelativeDate(value?: string): string {
   return `há ${diffDays}d`;
 }
 
-function normalizeSeverity(value?: string): CriticalAlertSeverity {
-  const normalized = String(value ?? "")
-    .toUpperCase()
-    .trim();
-
-  return normalized.includes("CRIT") ? "CRITICO" : "ATENCAO";
-}
-
-function normalizeStatus(value?: string): CriticalAlertStatus {
-  const normalized = String(value ?? "")
-    .toUpperCase()
-    .trim();
-
-  return normalized.includes("RESOL") ? "RESOLVIDO" : "ABERTO";
-}
-
-function formatType(value?: string): string {
-  return String(value ?? "Alerta crítico")
-    .replace(/_/g, " ")
-    .toLowerCase()
-    .replace(/^./, (letter) => letter.toUpperCase());
-}
-
-function mapAlert(item: ApiAlertaCritico): CriticalAlert {
-  const idTanque = toNumber(item.idTanque ?? item.IdTanque);
+function mapAlert(alerta: ApiAlertaCritico): CriticalAlert {
+  const idTanque = getTankId(alerta);
 
   return {
-    id: toNumber(item.idAlerta ?? item.IdAlerta),
+    id: getAlertId(alerta),
     tanque: `Tanque ${idTanque}`,
-    tipo: formatType(item.tipoAlerta ?? item.TipoAlerta),
-    mensagem: String(
-      item.mensagem ?? item.Mensagem ?? "Alerta crítico detectado."
+    tipo:
+      alerta.tipo ??
+      alerta.Tipo ??
+      alerta.tipoAlerta ??
+      alerta.TipoAlerta ??
+      "Alerta crítico",
+    mensagem:
+      alerta.mensagem ??
+      alerta.Mensagem ??
+      "Evento crítico detectado no tanque.",
+    severidade: normalizeSeverity(
+      alerta.severidade ?? alerta.Severidade ?? alerta.nivel ?? alerta.Nivel
     ),
-    severidade: normalizeSeverity(item.severidade ?? item.Severidade),
-    status: normalizeStatus(item.status ?? item.Status),
-    criadoEm: formatRelativeDate(item.dtAlerta ?? item.DtAlerta),
+    status: normalizeStatus(alerta.status ?? alerta.Status),
+    criadoEm: formatRelativeDate(
+      alerta.dtCriacao ??
+        alerta.DtCriacao ??
+        alerta.dtAlerta ??
+        alerta.DtAlerta ??
+        alerta.criadoEm ??
+        alerta.CriadoEm
+    ),
   };
 }
 
 export const CriticalAlertRepository = {
-  async getAlerts(): Promise<CriticalAlert[]> {
+  async getAlerts(tankIds: number[]): Promise<CriticalAlert[]> {
+    if (!tankIds || tankIds.length === 0) {
+      return [];
+    }
+
+    const allowedTankIds = new Set(tankIds);
+
     const response = await dotnetApiClient.get<ApiAlertaCritico[]>(
       "/AlertaCritico"
     );
 
     const data = Array.isArray(response.data) ? response.data : [];
 
-    return data.map(mapAlert).sort((a, b) => b.id - a.id);
+    return data
+      .filter((alerta) => allowedTankIds.has(getTankId(alerta)))
+      .map(mapAlert)
+      .sort((a, b) => b.id - a.id);
   },
 
   async resolveAlert(alertId: number): Promise<void> {

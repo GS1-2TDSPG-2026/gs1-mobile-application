@@ -1,10 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { FarmRepository } from "../../data/repositories/FarmRepository";
 import { IoTDeviceRepository } from "../../data/repositories/IoTDeviceRepository";
 import {
   IoTCommandType,
   IoTDevice,
 } from "../../domain/models/IoTDevice";
+
+function getErrorMessage(error: unknown): string {
+  const typedError = error as {
+    message?: string;
+  };
+
+  return (
+    typedError.message ??
+    "Não foi possível carregar o status do dispositivo IoT."
+  );
+}
 
 export function useIoTDevice() {
   const [device, setDevice] = useState<IoTDevice | null>(null);
@@ -18,12 +30,45 @@ export function useIoTDevice() {
     try {
       setLoading(true);
       setError("");
+      setFeedback("");
+      setDevice(null);
 
-      const data = await IoTDeviceRepository.getDeviceStatus();
+      const farms = await FarmRepository.getMyFarms();
+
+      if (farms.length === 0) {
+        setError(
+          "Você ainda não possui fazendas cadastradas. Cadastre uma fazenda para controlar dispositivos IoT."
+        );
+        return;
+      }
+
+      const tanksByFarm = await Promise.all(
+        farms.map(async (farm) => {
+          try {
+            return await FarmRepository.getTanksByFarm(farm.id);
+          } catch {
+            return [];
+          }
+        })
+      );
+
+      const tankIds = tanksByFarm
+        .flat()
+        .map((tank) => tank.id)
+        .filter((id) => Number.isFinite(id));
+
+      if (tankIds.length === 0) {
+        setError(
+          "Você ainda não possui tanques cadastrados. Cadastre um tanque para controlar dispositivos IoT."
+        );
+        return;
+      }
+
+      const data = await IoTDeviceRepository.getDeviceStatus(tankIds);
 
       setDevice(data);
-    } catch {
-      setError("Não foi possível carregar o status do dispositivo IoT.");
+    } catch (error) {
+      setError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }

@@ -56,6 +56,10 @@ type ApiDispositivo = {
 type ApiPrevisaoIa = {
   idPrevisao?: number;
   IdPrevisao?: number;
+  idTanque?: number;
+  IdTanque?: number;
+  idFazenda?: number;
+  IdFazenda?: number;
   dtPrevisao?: string;
   DtPrevisao?: string;
   dtPicoPrevisto?: string;
@@ -85,11 +89,13 @@ function getMetricId(item: ApiMetricaTanque): number {
   return toNumber(item.idMetrica ?? item.IdMetrica ?? Date.now());
 }
 
-function getTankId(item: ApiMetricaTanque | ApiTanque | ApiDispositivo): number {
+function getTankId(
+  item: ApiMetricaTanque | ApiTanque | ApiDispositivo | ApiPrevisaoIa
+): number {
   return toNumber(item.idTanque ?? item.IdTanque);
 }
 
-function getFazendaId(item: ApiFazenda | ApiTanque): number {
+function getFazendaId(item: ApiFazenda | ApiTanque | ApiPrevisaoIa): number {
   return toNumber(item.idFazenda ?? item.IdFazenda);
 }
 
@@ -207,17 +213,17 @@ function mapStatus(item: ApiMetricaTanque): TankStatus {
   return "NORMAL";
 }
 
+function getTankCode(tanque: ApiTanque): string {
+  const tankId = getTankId(tanque);
+
+  return tanque.codigoTanque ?? tanque.CodigoTanque ?? `Tanque ${tankId}`;
+}
+
 function getTankName(item: ApiMetricaTanque, tanques: ApiTanque[]): string {
   const tankId = getTankId(item);
   const tanque = tanques.find((current) => getTankId(current) === tankId);
 
   return tanque?.codigoTanque ?? tanque?.CodigoTanque ?? `Tanque ${tankId}`;
-}
-
-function getTankCode(tanque: ApiTanque): string {
-  const tankId = getTankId(tanque);
-
-  return tanque.codigoTanque ?? tanque.CodigoTanque ?? `Tanque ${tankId}`;
 }
 
 function mapMetric(item: ApiMetricaTanque, tanques: ApiTanque[]): TankMetric {
@@ -260,27 +266,48 @@ function getLatestMetricsByTank(
       return;
     }
 
-    const currentDate = getDateValue(current.dtLeitura ?? current.DtLeitura);
-    const newDate = getDateValue(metrica.dtLeitura ?? metrica.DtLeitura);
+    const currentId = getMetricId(current);
+    const newId = getMetricId(metrica);
 
-    if (newDate > currentDate) {
+    if (newId > currentId) {
       latestByTank.set(tankId, metrica);
     }
   });
 
   return Array.from(latestByTank.values()).sort(
-    (a, b) =>
-      getDateValue(b.dtLeitura ?? b.DtLeitura) -
-      getDateValue(a.dtLeitura ?? a.DtLeitura)
+    (a, b) => getMetricId(b) - getMetricId(a)
   );
 }
 
-function getLatestPrediction(previsoes: ApiPrevisaoIa[]): ApiPrevisaoIa | null {
+function getLatestPrediction(
+  previsoes: ApiPrevisaoIa[],
+  fazendaId?: number,
+  tankIds?: Set<number>
+): ApiPrevisaoIa | null {
   if (previsoes.length === 0) {
     return null;
   }
 
-  return [...previsoes].sort(
+  const previsoesFiltradas = previsoes.filter((previsao) => {
+    const previsaoFazendaId = getFazendaId(previsao);
+    const previsaoTanqueId = getTankId(previsao);
+
+    if (fazendaId && previsaoFazendaId > 0) {
+      return previsaoFazendaId === fazendaId;
+    }
+
+    if (tankIds && previsaoTanqueId > 0) {
+      return tankIds.has(previsaoTanqueId);
+    }
+
+    return false;
+  });
+
+  if (previsoesFiltradas.length === 0) {
+    return null;
+  }
+
+  return [...previsoesFiltradas].sort(
     (a, b) =>
       getDateValue(b.dtPrevisao ?? b.DtPrevisao) -
       getDateValue(a.dtPrevisao ?? a.DtPrevisao)
@@ -295,8 +322,22 @@ function isDeviceActive(dispositivo: ApiDispositivo): boolean {
   );
 }
 
+function emptyDashboard(): TelemetryDashboard {
+  return {
+    fazendaNome: "Nenhuma fazenda selecionada",
+    dispositivoStatus: "OFFLINE",
+    previsaoBiomassa: "sem previsão IA cadastrada",
+    confiancaIA: 0,
+    metricas: [],
+  };
+}
+
 export const TelemetryRepository = {
   async getDashboard(fazendaId?: number): Promise<TelemetryDashboard> {
+    if (!fazendaId) {
+      return emptyDashboard();
+    }
+
     const [metricas, tanques, fazendas, dispositivos, previsoes] =
       await Promise.all([
         safeGet<ApiMetricaTanque>("/MetricaTanque"),
@@ -306,64 +347,12 @@ export const TelemetryRepository = {
         safeGet<ApiPrevisaoIa>("/PrevisaoIa"),
       ]);
 
-    const ultimaMetricaGeral = [...metricas].sort(
-      (a, b) =>
-        getDateValue(b.dtLeitura ?? b.DtLeitura) -
-        getDateValue(a.dtLeitura ?? a.DtLeitura)
-    )[0];
-
-    const idTanqueUltimaMetrica = ultimaMetricaGeral
-      ? getTankId(ultimaMetricaGeral)
-      : 0;
-
-    const tanqueUltimaMetrica = tanques.find(
-      (tanque) => getTankId(tanque) === idTanqueUltimaMetrica
+    const fazendaSelecionada = fazendas.find(
+      (fazenda) => getFazendaId(fazenda) === fazendaId
     );
 
-    const idFazendaDaUltimaMetrica = tanqueUltimaMetrica
-      ? getFazendaId(tanqueUltimaMetrica)
-      : undefined;
-
-    const dispositivoAtivo = dispositivos.find(isDeviceActive);
-
-    const idTanqueDispositivoAtivo = dispositivoAtivo
-      ? getTankId(dispositivoAtivo)
-      : 0;
-
-    const tanqueDispositivoAtivo = tanques.find(
-      (tanque) => getTankId(tanque) === idTanqueDispositivoAtivo
-    );
-
-    const idFazendaDoDispositivoAtivo = tanqueDispositivoAtivo
-      ? getFazendaId(tanqueDispositivoAtivo)
-      : undefined;
-
-    const idsFazendasParaExibir = new Set<number>();
-
-    if (fazendaId) {
-      idsFazendasParaExibir.add(fazendaId);
-    }
-
-    if (idFazendaDaUltimaMetrica) {
-      idsFazendasParaExibir.add(idFazendaDaUltimaMetrica);
-    }
-
-    if (idFazendaDoDispositivoAtivo) {
-      idsFazendasParaExibir.add(idFazendaDoDispositivoAtivo);
-    }
-
-    if (idsFazendasParaExibir.size === 0 && fazendas[0]) {
-      idsFazendasParaExibir.add(getFazendaId(fazendas[0]));
-    }
-
-    const fazendasSelecionadas = fazendas.filter((fazenda) =>
-      idsFazendasParaExibir.has(getFazendaId(fazenda))
-    );
-
-    const fazendaSelecionada = fazendasSelecionadas[0];
-
-    const tanquesDaFazenda = tanques.filter((tanque) =>
-      idsFazendasParaExibir.has(getFazendaId(tanque))
+    const tanquesDaFazenda = tanques.filter(
+      (tanque) => getFazendaId(tanque) === fazendaId
     );
 
     const idsTanquesDaFazenda = new Set(
@@ -394,17 +383,26 @@ export const TelemetryRepository = {
       return mapMetric(metrica, tanques);
     });
 
-    const latestPrediction = getLatestPrediction(previsoes);
+    const latestPrediction = getLatestPrediction(
+      previsoes,
+      fazendaId,
+      idsTanquesDaFazenda
+    );
 
-    const existeDispositivoAtivo = dispositivos.some(isDeviceActive);
+    const existeDispositivoAtivo = dispositivos.some((dispositivo) => {
+      const idTanqueDispositivo = getTankId(dispositivo);
+
+      return (
+        idsTanquesDaFazenda.has(idTanqueDispositivo) &&
+        isDeviceActive(dispositivo)
+      );
+    });
 
     return {
       fazendaNome:
-        fazendasSelecionadas.length > 1
-          ? "Fazendas monitoradas"
-          : fazendaSelecionada?.nome ??
-            fazendaSelecionada?.Nome ??
-            "Fazenda Phycocarbon",
+        fazendaSelecionada?.nome ??
+        fazendaSelecionada?.Nome ??
+        "Fazenda Phycocarbon",
       dispositivoStatus: existeDispositivoAtivo ? "ONLINE" : "OFFLINE",
       previsaoBiomassa: formatDateTime(
         latestPrediction?.dtPicoPrevisto ?? latestPrediction?.DtPicoPrevisto

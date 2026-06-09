@@ -1,41 +1,57 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 
+import { FarmRepository } from "../../data/repositories/FarmRepository";
 import { TelemetryRepository } from "../../data/repositories/TelemetryRepository";
 import { TelemetryDashboard } from "../../domain/models/Telemetry";
-import { useAuth } from "../contexts/AuthContext";
 
 export function useTelemetryDashboard() {
-  const { session } = useAuth();
-
   const [dashboard, setDashboard] = useState<TelemetryDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadDashboard = useCallback(async () => {
+  const loadDashboard = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
+
       setError("");
 
-      const data = await TelemetryRepository.getDashboard(
-        session?.usuario.fazendaId
-      );
+      const farms = await FarmRepository.getMyFarms();
+
+      if (farms.length === 0) {
+        setDashboard(null);
+        setError(
+          "Você ainda não possui fazendas cadastradas. Cadastre uma fazenda para visualizar o dashboard operacional."
+        );
+        return;
+      }
+
+      const primeiraFazenda = farms[0];
+
+      const data = await TelemetryRepository.getDashboard(primeiraFazenda.id);
 
       setDashboard(data);
     } catch {
       setError("Não foi possível carregar o dashboard operacional.");
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
-  }, [session?.usuario.fazendaId]);
+  }, []);
 
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboard(true);
+    }, [loadDashboard])
+  );
 
   return {
     dashboard,
     loading,
     error,
-    reload: loadDashboard,
+    reload: () => loadDashboard(true),
   };
 }

@@ -25,7 +25,7 @@ function toSession(data: ApiTokenResponse): AuthSession {
       nome: data.nome,
       email: data.email,
       perfil: data.perfil,
-      fazendaId: isOperator ? 1 : undefined,
+      fazendaId: undefined,
       carteiraId: isOperator ? undefined : data.id,
     },
   };

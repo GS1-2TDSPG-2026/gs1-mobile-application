@@ -9,35 +9,44 @@ import {
 type ApiDispositivo = {
   idDispositivo?: number;
   IdDispositivo?: number;
+  id?: number;
+  Id?: number;
+
   idTanque?: number;
   IdTanque?: number;
-  codigoSerie?: string;
-  CodigoSerie?: string;
-  topicoMqtt?: string;
-  TopicoMqtt?: string;
-  modelo?: string | null;
-  Modelo?: string | null;
+
+  nome?: string;
+  Nome?: string;
+  nomeDispositivo?: string;
+  NomeDispositivo?: string;
+  modelo?: string;
+  Modelo?: string;
+
+  macAddress?: string;
+  MacAddress?: string;
+  mac?: string;
+  Mac?: string;
+
   ativo?: string;
   Ativo?: string;
-  dtInstalacao?: string;
-  DtInstalacao?: string;
+
+  dtUltimaComunicacao?: string;
+  DtUltimaComunicacao?: string;
+  ultimaComunicacao?: string;
+  UltimaComunicacao?: string;
 };
 
 type ApiTanque = {
   idTanque?: number;
   IdTanque?: number;
+  id?: number;
+  Id?: number;
   codigoTanque?: string;
   CodigoTanque?: string;
 };
 
-let actuatorState: Record<IoTCommandType, ActuatorStatus> = {
-  OXYGEN_PUMP: "DESLIGADO",
-  COOLER: "DESLIGADO",
-  CO2_INJECTOR: "DESLIGADO",
-  HARVEST_PUMP: "DESLIGADO",
-};
-
-let ultimoDispositivoId = 10;
+let currentDevice: IoTDevice | null = null;
+let currentDeviceId: number | null = null;
 
 function toNumber(value: unknown, fallback = 0): number {
   const numberValue = Number(value);
@@ -45,24 +54,44 @@ function toNumber(value: unknown, fallback = 0): number {
   return Number.isFinite(numberValue) ? numberValue : fallback;
 }
 
-function getDeviceId(item: ApiDispositivo): number {
-  return toNumber(item.idDispositivo ?? item.IdDispositivo);
+function getDeviceId(device: ApiDispositivo): number {
+  return toNumber(
+    device.idDispositivo ?? device.IdDispositivo ?? device.id ?? device.Id
+  );
 }
 
 function getTankId(item: ApiDispositivo | ApiTanque): number {
-  return toNumber(item.idTanque ?? item.IdTanque);
+  return toNumber(item.idTanque ?? item.IdTanque ?? item.id ?? item.Id);
+}
+
+function getTankCode(tank?: ApiTanque): string {
+  if (!tank) {
+    return "Tanque não identificado";
+  }
+
+  const tankId = getTankId(tank);
+
+  return tank.codigoTanque ?? tank.CodigoTanque ?? `Tanque ${tankId}`;
+}
+
+function isActive(device: ApiDispositivo): boolean {
+  const value = String(device.ativo ?? device.Ativo ?? "")
+    .toUpperCase()
+    .trim();
+
+  return value === "S" || value === "SIM" || value === "TRUE" || value === "ATIVO";
 }
 
 function formatRelativeDate(value?: string): string {
   if (!value) {
-    return "sem registro";
+    return "sem comunicação";
   }
 
   const date = new Date(value);
   const time = date.getTime();
 
   if (Number.isNaN(time)) {
-    return "sem registro";
+    return value;
   }
 
   const diffMs = Date.now() - time;
@@ -92,154 +121,191 @@ function formatRelativeDate(value?: string): string {
   return `há ${diffDays}d`;
 }
 
-function toggleStatus(current: ActuatorStatus): ActuatorStatus {
-  return current === "LIGADO" ? "DESLIGADO" : "LIGADO";
+function mapDevice(device: ApiDispositivo, tanks: ApiTanque[]): IoTDevice {
+  const tankId = getTankId(device);
+  const tank = tanks.find((item) => getTankId(item) === tankId);
+  const active = isActive(device);
+
+  const mappedDevice: IoTDevice = {
+    id: getDeviceId(device),
+    nome:
+      device.nome ??
+      device.Nome ??
+      device.nomeDispositivo ??
+      device.NomeDispositivo ??
+      device.modelo ??
+      device.Modelo ??
+      "ESP32-WROOM-32",
+    macAddress:
+      device.macAddress ??
+      device.MacAddress ??
+      device.mac ??
+      device.Mac ??
+      `ESP32-TANQUE-${tankId}`,
+    status: active ? "ONLINE" : "OFFLINE",
+    ultimaComunicacao: formatRelativeDate(
+      device.dtUltimaComunicacao ??
+        device.DtUltimaComunicacao ??
+        device.ultimaComunicacao ??
+        device.UltimaComunicacao
+    ),
+    tanque: getTankCode(tank),
+    bombaOxigenio: currentDevice?.bombaOxigenio ?? "DESLIGADO",
+    cooler: currentDevice?.cooler ?? "DESLIGADO",
+    injetorCo2: currentDevice?.injetorCo2 ?? "DESLIGADO",
+    bombaColheita: currentDevice?.bombaColheita ?? "DESLIGADO",
+  };
+
+  currentDevice = mappedDevice;
+  currentDeviceId = mappedDevice.id;
+
+  return mappedDevice;
 }
 
-function getCommandLabel(command: IoTCommandType): string {
-  if (command === "OXYGEN_PUMP") {
-    return "Bomba de oxigênio";
-  }
-
-  if (command === "COOLER") {
-    return "Cooler";
-  }
-
-  if (command === "CO2_INJECTOR") {
-    return "Injetor de CO₂";
-  }
-
-  return "Bomba de colheita";
+function toggleStatus(status: ActuatorStatus): ActuatorStatus {
+  return status === "LIGADO" ? "DESLIGADO" : "LIGADO";
 }
 
-function getMqttCommand(
+function getCommandPayload(
   command: IoTCommandType,
   nextStatus: ActuatorStatus
 ): string {
+  const shouldTurnOn = nextStatus === "LIGADO";
+
   if (command === "HARVEST_PUMP") {
-    return nextStatus === "LIGADO" ? "ABRIR_SERVO" : "FECHAR_SERVO";
+    return shouldTurnOn ? "ABRIR_SERVO" : "FECHAR_SERVO";
   }
 
   if (command === "OXYGEN_PUMP") {
-    return nextStatus === "LIGADO"
-      ? "LIGAR_BOMBA_OXIGENIO"
-      : "DESLIGAR_BOMBA_OXIGENIO";
+    return shouldTurnOn ? "LIGAR_BOMBA_OXIGENIO" : "DESLIGAR_BOMBA_OXIGENIO";
   }
 
   if (command === "COOLER") {
-    return nextStatus === "LIGADO" ? "LIGAR_COOLER" : "DESLIGAR_COOLER";
+    return shouldTurnOn ? "LIGAR_COOLER" : "DESLIGAR_COOLER";
+  }
+
+  return shouldTurnOn ? "LIGAR_CO2" : "DESLIGAR_CO2";
+}
+
+function updateLocalDevice(command: IoTCommandType): IoTDevice {
+  if (!currentDevice) {
+    throw new Error("Nenhum dispositivo IoT carregado.");
+  }
+
+  if (command === "OXYGEN_PUMP") {
+    currentDevice = {
+      ...currentDevice,
+      bombaOxigenio: toggleStatus(currentDevice.bombaOxigenio),
+      ultimaComunicacao: "agora",
+    };
+
+    return currentDevice;
+  }
+
+  if (command === "COOLER") {
+    currentDevice = {
+      ...currentDevice,
+      cooler: toggleStatus(currentDevice.cooler),
+      ultimaComunicacao: "agora",
+    };
+
+    return currentDevice;
   }
 
   if (command === "CO2_INJECTOR") {
-    return nextStatus === "LIGADO"
-      ? "LIGAR_INJETOR_CO2"
-      : "DESLIGAR_INJETOR_CO2";
+    currentDevice = {
+      ...currentDevice,
+      injetorCo2: toggleStatus(currentDevice.injetorCo2),
+      ultimaComunicacao: "agora",
+    };
+
+    return currentDevice;
   }
 
-  return "COMANDO_DESCONHECIDO";
-}
-
-function mapDevice(item: ApiDispositivo, tanques: ApiTanque[]): IoTDevice {
-  const tankId = getTankId(item);
-  const tanque = tanques.find((current) => getTankId(current) === tankId);
-  const ativo = String(item.ativo ?? item.Ativo ?? "")
-    .toUpperCase()
-    .trim();
-
-  const deviceId = getDeviceId(item);
-
-  if (deviceId > 0) {
-    ultimoDispositivoId = deviceId;
-  }
-
-  return {
-    id: deviceId,
-    nome: item.modelo ?? item.Modelo ?? "ESP32 Biofotorreator",
-    macAddress: item.codigoSerie ?? item.CodigoSerie ?? "Sem código de série",
-    status: ativo === "S" ? "ONLINE" : "OFFLINE",
-    ultimaComunicacao: formatRelativeDate(item.dtInstalacao ?? item.DtInstalacao),
-    tanque: tanque?.codigoTanque ?? tanque?.CodigoTanque ?? `Tanque ${tankId}`,
-    bombaOxigenio: actuatorState.OXYGEN_PUMP,
-    cooler: actuatorState.COOLER,
-    injetorCo2: actuatorState.CO2_INJECTOR,
-    bombaColheita: actuatorState.HARVEST_PUMP,
+  currentDevice = {
+    ...currentDevice,
+    bombaColheita: toggleStatus(currentDevice.bombaColheita),
+    ultimaComunicacao: "agora",
   };
+
+  return currentDevice;
 }
 
-async function getActiveDevice(): Promise<ApiDispositivo> {
-  const response = await dotnetApiClient.get<ApiDispositivo[]>("/DispositivoIot");
-
-  const devices = Array.isArray(response.data) ? response.data : [];
-
-  const activeDevice =
-    devices.find(
-      (device) =>
-        String(device.ativo ?? device.Ativo ?? "")
-          .toUpperCase()
-          .trim() === "S"
-    ) ?? devices[0];
-
-  if (!activeDevice) {
-    throw new Error("Nenhum dispositivo IoT encontrado na API .NET.");
+function getCommandMessage(command: IoTCommandType, device: IoTDevice): string {
+  if (command === "OXYGEN_PUMP") {
+    return `Bomba de oxigênio ${device.bombaOxigenio.toLowerCase()} via MQTT.`;
   }
 
-  const deviceId = getDeviceId(activeDevice);
-
-  if (deviceId > 0) {
-    ultimoDispositivoId = deviceId;
+  if (command === "COOLER") {
+    return `Cooler ${device.cooler.toLowerCase()} via MQTT.`;
   }
 
-  return activeDevice;
+  if (command === "CO2_INJECTOR") {
+    return `Injetor de CO₂ ${device.injetorCo2.toLowerCase()} via MQTT.`;
+  }
+
+  return `Bomba de colheita ${device.bombaColheita.toLowerCase()} via MQTT.`;
 }
 
 export const IoTDeviceRepository = {
-  async getDeviceStatus(): Promise<IoTDevice> {
-    const [deviceResponse, tankResponse] = await Promise.all([
+  async getDeviceStatus(allowedTankIds: number[]): Promise<IoTDevice> {
+    if (!allowedTankIds || allowedTankIds.length === 0) {
+      throw new Error("Nenhum tanque vinculado ao usuário.");
+    }
+
+    const allowedTanks = new Set(allowedTankIds);
+
+    const [devicesResponse, tanksResponse] = await Promise.all([
       dotnetApiClient.get<ApiDispositivo[]>("/DispositivoIot"),
       dotnetApiClient.get<ApiTanque[]>("/Tanque"),
     ]);
 
-    const devices = Array.isArray(deviceResponse.data)
-      ? deviceResponse.data
+    const devices = Array.isArray(devicesResponse.data)
+      ? devicesResponse.data
       : [];
 
-    const tanks = Array.isArray(tankResponse.data) ? tankResponse.data : [];
+    const tanks = Array.isArray(tanksResponse.data) ? tanksResponse.data : [];
 
-    const activeDevice =
-      devices.find(
-        (device) =>
-          String(device.ativo ?? device.Ativo ?? "")
-            .toUpperCase()
-            .trim() === "S"
-      ) ?? devices[0];
+    const visibleDevices = devices.filter((device) =>
+      allowedTanks.has(getTankId(device))
+    );
 
-    if (!activeDevice) {
-      throw new Error("Nenhum dispositivo IoT encontrado na API .NET.");
+    const selectedDevice =
+      visibleDevices.find(isActive) ?? visibleDevices[0];
+
+    if (!selectedDevice) {
+      throw new Error("Nenhum dispositivo IoT encontrado para seus tanques.");
     }
 
-    return mapDevice(activeDevice, tanks);
+    return mapDevice(selectedDevice, tanks);
   },
 
   async sendCommand(command: IoTCommandType): Promise<IoTCommandResult> {
-  const currentStatus = actuatorState[command];
-  const nextStatus = toggleStatus(currentStatus);
-  const mqttCommand = getMqttCommand(command, nextStatus);
+    if (!currentDevice || !currentDeviceId) {
+      throw new Error("Nenhum dispositivo IoT carregado.");
+    }
 
-  const idDispositivo = 10;
+    const previewDevice = updateLocalDevice(command);
 
-  await dotnetApiClient.post("/iot/comandos", {
-    idDispositivo,
-    comando: mqttCommand,
-  });
+    const nextStatus =
+      command === "OXYGEN_PUMP"
+        ? previewDevice.bombaOxigenio
+        : command === "COOLER"
+        ? previewDevice.cooler
+        : command === "CO2_INJECTOR"
+        ? previewDevice.injetorCo2
+        : previewDevice.bombaColheita;
 
-  actuatorState = {
-    ...actuatorState,
-    [command]: nextStatus,
-  };
+    const mqttCommand = getCommandPayload(command, nextStatus);
 
-  return {
-    command,
-    message: `${getCommandLabel(command)} ${nextStatus.toLowerCase()} via MQTT.`,
-  };
-},
+    await dotnetApiClient.post("/iot/comandos", {
+      idDispositivo: currentDeviceId,
+      comando: mqttCommand,
+    });
+
+    return {
+      command,
+      message: getCommandMessage(command, previewDevice),
+    };
+  },
 };
