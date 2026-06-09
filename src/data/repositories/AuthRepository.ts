@@ -2,89 +2,57 @@ import {
   AuthSession,
   LoginRequest,
   RegisterRequest,
+  UserRole,
 } from "../../domain/models/Auth";
+import { apiClient } from "../api/apiClient";
 
-let mockUsers: AuthSession[] = [
-  {
-    token: "mock-jwt-token-operador",
+type ApiTokenResponse = {
+  token: string;
+  tipo: string;
+  id: number;
+  nome: string;
+  email: string;
+  perfil: UserRole;
+};
+
+function toSession(data: ApiTokenResponse): AuthSession {
+  const isOperator = data.perfil === "OPERADOR_CAMPO";
+
+  return {
+    token: data.token,
     usuario: {
-      id: 1,
-      nome: "Operador Campo",
-      email: "operador@phycocarbon.com",
-      perfil: "OPERADOR_FAZENDA",
-      fotoUrl: "https://i.pravatar.cc/300?img=12",
-      fazendaId: 101,
+      id: data.id,
+      nome: data.nome,
+      email: data.email,
+      perfil: data.perfil,
+      fazendaId: isOperator ? 1 : undefined,
+      carteiraId: isOperator ? undefined : data.id,
     },
-  },
-  {
-    token: "mock-jwt-token-investidor",
-    usuario: {
-      id: 2,
-      nome: "Investidor ESG",
-      email: "investidor@phycocarbon.com",
-      perfil: "INVESTIDOR_ESG",
-      fotoUrl: "https://i.pravatar.cc/300?img=32",
-      carteiraId: 201,
-    },
-  },
-  {
-    token: "mock-jwt-token-comprador",
-    usuario: {
-      id: 3,
-      nome: "Comprador B2B",
-      email: "comprador@phycocarbon.com",
-      perfil: "COMPRADOR_B2B",
-      fotoUrl: "https://i.pravatar.cc/300?img=47",
-      carteiraId: 202,
-    },
-  },
-];
+  };
+}
+
+async function login(data: LoginRequest): Promise<AuthSession> {
+  const response = await apiClient.post<ApiTokenResponse>("/auth/login", data);
+
+  return toSession(response.data);
+}
+
+async function register(data: RegisterRequest): Promise<AuthSession> {
+  await apiClient.post("/auth/register", {
+    nome: data.nome,
+    email: data.email,
+    senha: data.senha,
+    telefone: data.telefone,
+    nomePerfil: data.perfil,
+  });
+
+  return login({
+    email: data.email,
+    senha: data.senha,
+  });
+}
 
 export const AuthRepository = {
-  async login(data: LoginRequest): Promise<AuthSession> {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    const user = mockUsers.find(
-      (item) =>
-        item.usuario.email.toLowerCase() === data.email.toLowerCase() &&
-        data.senha === "123456"
-    );
-
-    if (!user) {
-      throw new Error("E-mail ou senha inválidos.");
-    }
-
-    return user;
-  },
-
-  async register(data: RegisterRequest): Promise<AuthSession> {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    const emailAlreadyExists = mockUsers.some(
-      (item) => item.usuario.email.toLowerCase() === data.email.toLowerCase()
-    );
-
-    if (emailAlreadyExists) {
-      throw new Error("E-mail já cadastrado.");
-    }
-
-    const isOperator = data.perfil === "OPERADOR_FAZENDA";
-
-    const newSession: AuthSession = {
-      token: `mock-jwt-token-${Date.now()}`,
-      usuario: {
-        id: Date.now(),
-        nome: data.nome,
-        email: data.email,
-        perfil: data.perfil,
-        fotoUrl: "https://i.pravatar.cc/300?img=5",
-        fazendaId: isOperator ? 101 : undefined,
-        carteiraId: isOperator ? undefined : 201,
-      },
-    };
-
-    mockUsers = [newSession, ...mockUsers];
-
-    return newSession;
-  },
+  login,
+  register,
 };

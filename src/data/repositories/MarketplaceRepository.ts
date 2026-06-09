@@ -3,68 +3,96 @@ import {
   MarketplaceLot,
   MarketplaceLotStatus,
 } from "../../domain/models/MarketplaceLot";
+import { apiClient } from "../api/apiClient";
 
-let mockLots: MarketplaceLot[] = [
-  {
-    id: 1,
-    nome: "Lote Spirulina Premium",
+
+type ApiPage<T> = {
+  content: T[];
+};
+
+type ApiLoteBiomassaResponse = {
+  id: number;
+  idFazenda: number;
+  nomeFazenda: string;
+  idTanque: number;
+  codigoTanque: string;
+  taxonomiaAlga: string;
+  pesoKg: number;
+  precoUnitario: number;
+  status: MarketplaceLotStatus;
+  dtColheita: string;
+};
+
+function toMarketplaceLot(apiLot: ApiLoteBiomassaResponse): MarketplaceLot {
+  const valorTotal = Number(apiLot.pesoKg) * Number(apiLot.precoUnitario);
+
+  return {
+    id: apiLot.id,
+    nome: `Lote ${apiLot.taxonomiaAlga}`,
     tipo: "BIOMASSA",
-    pesoKg: 120,
-    preco: 18500,
-    fazendaOrigem: "Cooperativa Juazeiro",
-    status: "DISPONIVEL",
-  },
-  {
-    id: 2,
-    nome: "Crédito Carbono Bioativo",
-    tipo: "CREDITO_CARBONO",
-    pesoKg: 0,
-    preco: 9200,
-    fazendaOrigem: "Fazenda Solar Sertão",
-    status: "RESERVADO",
-  },
-];
+    pesoKg: Number(apiLot.pesoKg),
+    preco: valorTotal,
+    fazendaOrigem: apiLot.nomeFazenda,
+    status: apiLot.status,
+
+    idFazenda: apiLot.idFazenda,
+    idTanque: apiLot.idTanque,
+    codigoTanque: apiLot.codigoTanque,
+    taxonomiaAlga: apiLot.taxonomiaAlga,
+    precoUnitario: Number(apiLot.precoUnitario),
+    dtColheita: apiLot.dtColheita,
+  };
+}
 
 export const MarketplaceRepository = {
   async getLots(): Promise<MarketplaceLot[]> {
-    await new Promise((resolve) => setTimeout(resolve, 700));
+    const response = await apiClient.get<ApiPage<ApiLoteBiomassaResponse>>(
+      "/marketplace/lotes",
+      {
+        params: {
+          size: 50,
+        },
+      }
+    );
 
-    return [...mockLots];
+    return response.data.content.map(toMarketplaceLot);
   },
 
   async createLot(data: CreateMarketplaceLotRequest): Promise<MarketplaceLot> {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    const response = await apiClient.post<ApiLoteBiomassaResponse>(
+      "/marketplace/lotes",
+      {
+        idFazenda: 1,
+        idTanque: 1,
+        taxonomiaAlga: data.nome,
+        pesoKg: data.pesoKg,
+        precoUnitario: data.preco,
+      }
+    );
 
-    const newLot: MarketplaceLot = {
-      id: Date.now(),
-      ...data,
-      status: "DISPONIVEL",
-    };
-
-    mockLots = [newLot, ...mockLots];
-
-    return newLot;
+    return toMarketplaceLot(response.data);
   },
 
   async updateLotStatus(
     lotId: number,
     status: MarketplaceLotStatus
   ): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    mockLots = mockLots.map((lot) =>
-      lot.id === lotId
-        ? {
-            ...lot,
-            status,
-          }
-        : lot
-    );
+    await apiClient.patch(`/marketplace/lotes/${lotId}/status`, {
+      status,
+    });
   },
 
-  async deleteLot(lotId: number): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+  async buyBiomassLot(lot: MarketplaceLot): Promise<void> {
+  await apiClient.post("/marketplace/transacoes", {
+    idLote: lot.id,
+    idCredito: null,
+    tipoTransacao: "COMPRA_BIOMASSA",
+    quantidade: lot.pesoKg,
+    valorTotal: lot.preco,
+  });
+},
 
-    mockLots = mockLots.filter((lot) => lot.id !== lotId);
+  async deleteLot(lotId: number): Promise<void> {
+    await apiClient.delete(`/marketplace/lotes/${lotId}`);
   },
 };

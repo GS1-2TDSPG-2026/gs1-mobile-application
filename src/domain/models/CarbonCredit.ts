@@ -1,8 +1,15 @@
-export type CarbonCreditStatus = "VALIDADO" | "PENDENTE" | "NEGOCIADO";
+export type CarbonCreditStatus =
+  | "DISPONIVEL"
+  | "VALIDADO"
+  | "VENDIDO"
+  | "PENDENTE"
+  | "NEGOCIADO";
 
 export type CarbonCredit = {
   id: number;
   codigo: string;
+  idFazenda: number;
+  idLote: number;
   quantidadeCo2: number;
   valorEstimado: number;
   status: CarbonCreditStatus;

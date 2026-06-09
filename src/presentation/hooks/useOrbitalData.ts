@@ -9,16 +9,17 @@ export function useOrbitalData() {
 
   const [summary, setSummary] = useState<OrbitalDataSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState("");
+
+  const fazendaId = session?.usuario.fazendaId ?? 1;
 
   const loadOrbitalData = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
-      const data = await OrbitalDataRepository.getOrbitalData(
-        session?.usuario.fazendaId
-      );
+      const data = await OrbitalDataRepository.getOrbitalData(fazendaId);
 
       setSummary(data);
     } catch {
@@ -26,7 +27,24 @@ export function useOrbitalData() {
     } finally {
       setLoading(false);
     }
-  }, [session?.usuario.fazendaId]);
+  }, [fazendaId]);
+
+  async function syncOrbitalData() {
+    try {
+      setSyncing(true);
+      setError("");
+
+      const data = await OrbitalDataRepository.syncOrbitalData(fazendaId);
+
+      setSummary(data);
+    } catch {
+      setError(
+        "Não foi possível sincronizar com a NASA. Verifique a API Java e a conexão."
+      );
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   useEffect(() => {
     loadOrbitalData();
@@ -35,7 +53,9 @@ export function useOrbitalData() {
   return {
     summary,
     loading,
+    syncing,
     error,
     reload: loadOrbitalData,
+    syncOrbitalData,
   };
 }

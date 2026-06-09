@@ -12,6 +12,7 @@ export type OrbitalData = {
   riscoOperacional: OrbitalRiskLevel;
   impactoNaBiomassa: string;
   atualizadoEm: string;
+  dataColeta: string;
 };
 
 export type OrbitalDataSummary = {
