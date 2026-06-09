@@ -37,6 +37,8 @@ let actuatorState: Record<IoTCommandType, ActuatorStatus> = {
   HARVEST_PUMP: "DESLIGADO",
 };
 
+let ultimoDispositivoId = 10;
+
 function toNumber(value: unknown, fallback = 0): number {
   const numberValue = Number(value);
 
@@ -110,6 +112,33 @@ function getCommandLabel(command: IoTCommandType): string {
   return "Bomba de colheita";
 }
 
+function getMqttCommand(
+  command: IoTCommandType,
+  nextStatus: ActuatorStatus
+): string {
+  if (command === "HARVEST_PUMP") {
+    return nextStatus === "LIGADO" ? "ABRIR_SERVO" : "FECHAR_SERVO";
+  }
+
+  if (command === "OXYGEN_PUMP") {
+    return nextStatus === "LIGADO"
+      ? "LIGAR_BOMBA_OXIGENIO"
+      : "DESLIGAR_BOMBA_OXIGENIO";
+  }
+
+  if (command === "COOLER") {
+    return nextStatus === "LIGADO" ? "LIGAR_COOLER" : "DESLIGAR_COOLER";
+  }
+
+  if (command === "CO2_INJECTOR") {
+    return nextStatus === "LIGADO"
+      ? "LIGAR_INJETOR_CO2"
+      : "DESLIGAR_INJETOR_CO2";
+  }
+
+  return "COMANDO_DESCONHECIDO";
+}
+
 function mapDevice(item: ApiDispositivo, tanques: ApiTanque[]): IoTDevice {
   const tankId = getTankId(item);
   const tanque = tanques.find((current) => getTankId(current) === tankId);
@@ -117,8 +146,14 @@ function mapDevice(item: ApiDispositivo, tanques: ApiTanque[]): IoTDevice {
     .toUpperCase()
     .trim();
 
+  const deviceId = getDeviceId(item);
+
+  if (deviceId > 0) {
+    ultimoDispositivoId = deviceId;
+  }
+
   return {
-    id: getDeviceId(item),
+    id: deviceId,
     nome: item.modelo ?? item.Modelo ?? "ESP32 Biofotorreator",
     macAddress: item.codigoSerie ?? item.CodigoSerie ?? "Sem código de série",
     status: ativo === "S" ? "ONLINE" : "OFFLINE",
@@ -129,6 +164,32 @@ function mapDevice(item: ApiDispositivo, tanques: ApiTanque[]): IoTDevice {
     injetorCo2: actuatorState.CO2_INJECTOR,
     bombaColheita: actuatorState.HARVEST_PUMP,
   };
+}
+
+async function getActiveDevice(): Promise<ApiDispositivo> {
+  const response = await dotnetApiClient.get<ApiDispositivo[]>("/DispositivoIot");
+
+  const devices = Array.isArray(response.data) ? response.data : [];
+
+  const activeDevice =
+    devices.find(
+      (device) =>
+        String(device.ativo ?? device.Ativo ?? "")
+          .toUpperCase()
+          .trim() === "S"
+    ) ?? devices[0];
+
+  if (!activeDevice) {
+    throw new Error("Nenhum dispositivo IoT encontrado na API .NET.");
+  }
+
+  const deviceId = getDeviceId(activeDevice);
+
+  if (deviceId > 0) {
+    ultimoDispositivoId = deviceId;
+  }
+
+  return activeDevice;
 }
 
 export const IoTDeviceRepository = {
@@ -160,16 +221,25 @@ export const IoTDeviceRepository = {
   },
 
   async sendCommand(command: IoTCommandType): Promise<IoTCommandResult> {
-    actuatorState = {
-      ...actuatorState,
-      [command]: toggleStatus(actuatorState[command]),
-    };
+  const currentStatus = actuatorState[command];
+  const nextStatus = toggleStatus(currentStatus);
+  const mqttCommand = getMqttCommand(command, nextStatus);
 
-    return {
-      command,
-      message: `${getCommandLabel(command)} ${actuatorState[
-        command
-      ].toLowerCase()}. Comando visual atualizado no app; endpoint MQTT de comando ainda precisa ser criado na .NET.`,
-    };
-  },
+  const idDispositivo = 10;
+
+  await dotnetApiClient.post("/iot/comandos", {
+    idDispositivo,
+    comando: mqttCommand,
+  });
+
+  actuatorState = {
+    ...actuatorState,
+    [command]: nextStatus,
+  };
+
+  return {
+    command,
+    message: `${getCommandLabel(command)} ${nextStatus.toLowerCase()} via MQTT.`,
+  };
+},
 };
