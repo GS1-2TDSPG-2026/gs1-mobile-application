@@ -10,24 +10,32 @@ O Phycocarbon é uma solução de bioeconomia que conecta **microalgas, IoT, dad
 
 > Projeto mobile em desenvolvimento acadêmico para a Global Solution FIAP 2026.
 
-Atualmente, o aplicativo está funcionando com **dados mockados**, pois as APIs Java e .NET ainda estão em desenvolvimento.
+O aplicativo já possui **integração parcial com as APIs Java e .NET**.
 
-Mesmo sem as APIs prontas, o app já possui:
+Integrações implementadas:
 
-* Autenticação mockada
-* Cadastro mockado
-* Navegação por perfil
-* Dashboard operacional
-* Controle IoT simulado
-* Previsões de IA simuladas
-* Dados orbitais simulados
-* Alertas críticos
-* Marketplace com CRUD mockado
-* Carteira de carbono
-* Histórico de transações
-* Perfil com foto editável
-* Ícones nas abas
-* Estrutura organizada em camadas
+- **API Java Spring Boot** para autenticação, cadastro, fazendas, tanques, marketplace, transações, créditos de carbono, perfil de usuário e dados orbitais.
+- **API .NET** para telemetria dos tanques, dispositivos IoT, comandos remotos e alertas críticos.
+- **AsyncStorage** para persistência local da sessão.
+- **Mock local apenas na tela de Previsões de IA**, enquanto o serviço de IA ainda não está integrado.
+
+O app possui:
+
+- login real via API Java;
+- cadastro real via API Java;
+- navegação por perfil;
+- dashboard operacional com telemetria da API .NET;
+- listagem de fazendas e tanques pela API Java;
+- controle IoT com envio de comandos para a API .NET;
+- alertas críticos vindos da API .NET;
+- previsões de IA simuladas;
+- dados orbitais vindos da API Java;
+- marketplace integrado com a API Java;
+- carteira de carbono integrada com a API Java;
+- histórico de transações integrado com a API Java;
+- perfil com foto editável e atualização de dados via API Java;
+- ícones nas abas;
+- estrutura organizada em camadas.
 
 ---
 
@@ -37,53 +45,53 @@ O aplicativo mobile representa a camada de experiência do usuário da plataform
 
 Ele foi projetado para atender dois grupos principais:
 
-### Operador de Fazenda
+### Operador de Campo
 
-Usuário responsável pela operação local dos tanques de microalgas e dispositivos IoT.
-
-Funcionalidades implementadas:
-
-* Login mockado por perfil
-* Cadastro mockado
-* Dashboard operacional de telemetria
-* Visualização de tanques monitorados
-* Status de sensores e dispositivos ESP32
-* Controle simulado de atuadores IoT
-* Alertas críticos de operação
-* Previsões de IA para biomassa
-* Dados orbitais usados na operação
-* Perfil com foto editável
-
-### Investidor ESG / Comprador B2B
-
-Usuário voltado à análise ambiental, créditos de carbono e marketplace.
+Usuário responsável pela operação local das fazendas, tanques de microalgas e dispositivos IoT.
 
 Funcionalidades implementadas:
 
-* Login mockado por perfil
-* Cadastro mockado
-* Marketplace com CRUD mockado de lotes
-* Cadastro de lote de biomassa ou crédito de carbono
-* Reserva, venda e exclusão de lotes
-* Carteira de créditos de carbono
-* Histórico de transações
-* Visualização de hash de auditoria
-* Perfil com foto editável
+- login por perfil com JWT;
+- cadastro de usuário na API Java;
+- dashboard operacional de telemetria;
+- visualização de fazendas e tanques;
+- status de sensores e dispositivos ESP32;
+- controle de atuadores IoT por comando remoto;
+- alertas críticos de operação;
+- previsões simuladas de IA para biomassa;
+- dados orbitais usados na operação;
+- perfil com foto editável.
+
+### Investidor / Comprador B2B
+
+Usuário voltado à análise ambiental, créditos de carbono, marketplace e histórico transacional.
+
+Funcionalidades implementadas:
+
+- login por perfil com JWT;
+- marketplace de lotes de biomassa;
+- criação de lote;
+- reserva, venda, compra e exclusão de lotes;
+- carteira de créditos de carbono;
+- validação de créditos de carbono;
+- histórico de transações;
+- visualização de hash de auditoria;
+- perfil com foto editável.
 
 ---
 
 ## Tecnologias Utilizadas
 
-* React Native
-* Expo
-* TypeScript
-* React Navigation
-* AsyncStorage
-* Expo Image Picker
-* Expo Vector Icons
-* StyleSheet
-* Git Flow
-* Prettier
+- React Native
+- Expo
+- TypeScript
+- React Navigation
+- Axios
+- AsyncStorage
+- Expo Image Picker
+- Expo Vector Icons
+- StyleSheet
+- Git Flow
 
 ---
 
@@ -96,7 +104,6 @@ src/
 ├── app/
 │   └── routes/
 ├── core/
-│   ├── config/
 │   └── theme/
 ├── data/
 │   ├── api/
@@ -104,30 +111,67 @@ src/
 │   └── storage/
 ├── domain/
 │   └── models/
-├── presentation/
-│   ├── components/
-│   ├── contexts/
-│   ├── hooks/
-│   └── screens/
-│       ├── auth/
-│       ├── operator/
-│       └── investor/
-└── shared/
-    └── utils/
+└── presentation/
+    ├── components/
+    ├── contexts/
+    ├── hooks/
+    └── screens/
+        ├── auth/
+        ├── investor/
+        └── operator/
 ```
 
 ### Responsabilidades das Camadas
 
-| Camada                    | Responsabilidade                                |
-| ------------------------- | ----------------------------------------------- |
-| `app/routes`              | Controle de navegação e rotas por perfil        |
-| `core/theme`              | Cores, espaçamentos e tipografia                |
-| `data/repositories`       | Simulação de dados e futura integração com APIs |
-| `data/storage`            | Persistência local com AsyncStorage             |
-| `domain/models`           | Tipagens e contratos do domínio                 |
-| `presentation/screens`    | Telas do aplicativo                             |
-| `presentation/hooks`      | Estados e regras de tela                        |
-| `presentation/components` | Componentes reutilizáveis de interface          |
+| Camada | Responsabilidade |
+| --- | --- |
+| `app/routes` | Controle de navegação e rotas por perfil |
+| `core/theme` | Cores, espaçamentos e tipografia |
+| `data/api` | Configuração dos clients Axios da API Java e da API .NET |
+| `data/repositories` | Integração com APIs e adaptação dos dados para o app |
+| `data/storage` | Persistência local da sessão com AsyncStorage |
+| `domain/models` | Tipagens e contratos do domínio |
+| `presentation/screens` | Telas do aplicativo |
+| `presentation/hooks` | Estados e regras de tela |
+| `presentation/components` | Componentes reutilizáveis de interface |
+
+---
+
+## APIs Configuradas
+
+### API Java
+
+Arquivo:
+
+```text
+src/data/api/apiClient.ts
+```
+
+Base URL atual:
+
+```txt
+http://10.0.2.2:8080/api
+```
+
+Essa URL é adequada para emulador Android acessando uma API Java rodando localmente na máquina.
+
+Em dispositivo físico, altere para o IP da máquina na rede local ou para a URL pública da API.
+
+### API .NET
+
+Arquivo:
+
+```text
+src/data/api/dotnetApiClient.ts
+```
+
+Base URL atual:
+
+```txt
+https://gs1-net.onrender.com/api
+```
+
+Essa API é usada para telemetria, dispositivos IoT, comandos e alertas críticos.
 
 ---
 
@@ -135,44 +179,74 @@ src/
 
 O app adapta sua navegação de acordo com o perfil do usuário autenticado.
 
-### OPERADOR_FAZENDA
+| Perfil | Área liberada |
+| --- | --- |
+| `OPERADOR_CAMPO` | Dashboard, Tanques, IoT, Alertas, IA, Orbital e Perfil |
+| `INVESTIDOR` | Marketplace, Transações, Carbono e Perfil |
+| `COMPRADOR_B2B` | Marketplace, Transações, Carbono e Perfil |
+| `ADMIN` | Área operacional |
 
-Acesso às abas:
+---
 
-* Operação
-* IoT
-* IA
-* Orbital
-* Alertas
-* Perfil
+## Rotas do Aplicativo
 
-### INVESTIDOR_ESG
+### Rotas públicas
 
-Acesso às abas:
+Arquivos principais:
 
-* Marketplace
-* Transações
-* Carbono
-* Perfil
+```text
+src/app/routes/AuthRoutes.tsx
+src/presentation/screens/auth/LoginScreen.tsx
+src/presentation/screens/auth/RegisterScreen.tsx
+```
 
-### COMPRADOR_B2B
+Telas:
 
-Acesso às abas:
+- Login
+- Cadastro
 
-* Marketplace
-* Transações
-* Carbono
-* Perfil
+### Rotas do operador
+
+Arquivo principal:
+
+```text
+src/app/routes/OperatorRoutes.tsx
+```
+
+Abas:
+
+- Dashboard
+- Tanques
+- IoT
+- Alertas
+- IA
+- Orbital
+- Perfil
+
+### Rotas do investidor/comprador
+
+Arquivo principal:
+
+```text
+src/app/routes/InvestorRoutes.tsx
+```
+
+Abas:
+
+- Marketplace
+- Transações
+- Carbono
+- Perfil
 
 ---
 
 ## Funcionalidades Implementadas
 
-### Autenticação Mockada
+### Autenticação via API Java
 
-O app possui autenticação simulada com persistência local de sessão.
+O app realiza login com a API Java e salva a sessão localmente com `AsyncStorage`.
 
-A sessão é salva com `AsyncStorage`, permitindo que o usuário permaneça logado mesmo após fechar e abrir o app novamente.
+A sessão contém token JWT e dados do usuário autenticado.
 
 Arquivos principais:
 
@@ -183,25 +257,23 @@ src/data/storage/sessionStorage.ts
 src/domain/models/Auth.ts
 ```
 
+Endpoint utilizado:
+
+```txt
+POST /auth/login
+```
+
 ---
 
-### Cadastro Mockado
+### Cadastro via API Java
 
-Além do login mockado, o app também possui fluxo de cadastro de usuário.
+O cadastro cria um usuário real na API Java e depois realiza login automaticamente.
 
-O cadastro permite selecionar o perfil de acesso do novo usuário:
+Perfis disponíveis no cadastro:
 
-* `OPERADOR_FAZENDA`
-* `INVESTIDOR_ESG`
-* `COMPRADOR_B2B`
-
-Após o cadastro, o app cria uma sessão mockada automaticamente e redireciona o usuário para a área correta de acordo com o perfil escolhido.
-
-Fluxo:
-
-```text
-Cadastro → Criação de sessão mockada → Persistência local → Navegação por perfil
-```
+- `OPERADOR_CAMPO`
+- `INVESTIDOR`
+- `COMPRADOR_B2B`
 
 Arquivos principais:
 
@@ -212,13 +284,17 @@ src/data/repositories/AuthRepository.ts
 src/domain/models/Auth.ts
 ```
 
-Observação: como o cadastro ainda é mockado em memória, usuários criados podem ser perdidos após recarregamento total do app. Quando a API Java estiver pronta, esse fluxo será substituído por integração real com o backend.
+Endpoint utilizado:
+
+```txt
+POST /auth/register
+```
 
 ---
 
 ### Navegação por Perfil
 
-A navegação é controlada de acordo com o perfil retornado no login ou cadastro mockado.
+A navegação é controlada de acordo com o perfil retornado no login ou cadastro.
 
 Arquivos principais:
 
@@ -233,19 +309,20 @@ src/app/routes/InvestorRoutes.tsx
 
 ### Dashboard Operacional
 
-Tela voltada ao operador de fazenda.
+Tela voltada ao operador de campo.
 
 Exibe:
 
-* Status do ESP32
-* Previsão da IA
-* Confiança do modelo
-* Tanques monitorados
-* pH
-* Temperatura
-* Turbidez
-* Luminosidade
-* Status operacional do tanque
+- status do ESP32;
+- previsão da IA;
+- confiança do modelo;
+- tanques monitorados;
+- pH;
+- temperatura;
+- turbidez;
+- luminosidade;
+- status operacional do tanque;
+- última leitura.
 
 Arquivos principais:
 
@@ -256,19 +333,71 @@ src/data/repositories/TelemetryRepository.ts
 src/domain/models/Telemetry.ts
 ```
 
+Endpoints da API .NET utilizados:
+
+```txt
+GET /MetricaTanque
+GET /Tanque
+GET /Fazenda
+GET /DispositivoIot
+GET /PrevisaoIa
+```
+
+---
+
+### Fazendas e Tanques
+
+Tela responsável por listar e gerenciar fazendas e tanques do usuário.
+
+Funcionalidades:
+
+- listar fazendas do usuário;
+- listar tanques por fazenda;
+- criar fazenda;
+- editar fazenda;
+- excluir fazenda;
+- criar tanque;
+- editar tanque;
+- excluir tanque;
+- visualizar resumo operacional da fazenda.
+
+Arquivos principais:
+
+```text
+src/presentation/screens/operator/FazendasTanquesScreen.tsx
+src/presentation/hooks/useFarmsAndTanks.ts
+src/data/repositories/FarmRepository.ts
+src/domain/models/Farm.ts
+```
+
+Endpoints da API Java utilizados:
+
+```txt
+GET /fazendas/minhas
+GET /fazendas
+POST /fazendas
+PUT /fazendas/{id}
+DELETE /fazendas/{id}
+GET /fazendas/{id}/dashboard
+GET /tanques/fazenda/{idFazenda}
+POST /tanques
+PUT /tanques/{id}
+DELETE /tanques/{id}
+```
+
 ---
 
 ### Controle IoT
 
-Tela que simula comandos enviados ao ESP32 do biofotorreator.
+Tela que envia comandos remotos para o dispositivo IoT pela API .NET.
 
-Comandos disponíveis:
+Comandos disponíveis na interface:
 
-* Ligar/desligar bomba de oxigênio
-* Ligar/desligar cooler
-* Ligar/desligar injetor de CO₂
-* Ligar/desligar bomba de colheita
-* Atualizar status do dispositivo
+- ligar/desligar bomba de oxigênio;
+- ligar/desligar cooler;
+- ligar/desligar injetor de CO₂;
+- ligar/desligar bomba de colheita;
+- atualizar status do dispositivo.
 
 Arquivos principais:
 
@@ -279,24 +408,36 @@ src/data/repositories/IoTDeviceRepository.ts
 src/domain/models/IoTDevice.ts
 ```
 
+Endpoints da API .NET utilizados:
+
+```txt
+GET /DispositivoIot
+GET /Tanque
+POST /iot/comandos
+```
+
+Observação: no código atual, o comando da bomba de colheita é convertido para `ABRIR_SERVO` ou `FECHAR_SERVO`, compatível com o ESP32.
+
 ---
 
 ### Previsões de IA
 
-Tela que simula previsões de crescimento de biomassa para as próximas 48 horas.
+Tela que apresenta previsões de crescimento de biomassa para as próximas 48 horas.
+
+No estado atual do projeto, esta tela ainda utiliza dados simulados no repository local.
 
 Exibe:
 
-* Biomassa atual
-* Biomassa prevista
-* Crescimento percentual
-* Confiança do modelo
-* Data estimada de colheita
-* Radiação PAR
-* Índice UV
-* Nebulosidade
-* Risco operacional
-* Recomendação por tanque
+- biomassa atual;
+- biomassa prevista;
+- crescimento percentual;
+- confiança do modelo;
+- data estimada de colheita;
+- radiação PAR;
+- índice UV;
+- nebulosidade;
+- risco operacional;
+- recomendação por tanque.
 
 Arquivos principais:
 
@@ -313,21 +454,18 @@ src/domain/models/BiomassPrediction.ts
 
 Tela que evidencia o uso de dados espaciais no projeto.
 
-Exibe fontes simuladas como:
+Exibe:
 
-* NASA POWER
-* Copernicus Climate Data
-* NOAA Climate Feed
-
-Métricas exibidas:
-
-* Radiação PAR
-* Índice UV
-* Nebulosidade
-* Temperatura externa
-* Previsão climática
-* Impacto na biomassa
-* Risco operacional
+- fonte dos dados orbitais;
+- localização da fazenda;
+- radiação PAR;
+- índice UV estimado;
+- nebulosidade;
+- temperatura externa;
+- previsão climática;
+- impacto na biomassa;
+- risco operacional;
+- data da coleta.
 
 Arquivos principais:
 
@@ -338,18 +476,25 @@ src/data/repositories/OrbitalDataRepository.ts
 src/domain/models/OrbitalData.ts
 ```
 
+Endpoints da API Java utilizados:
+
+```txt
+GET /dados-orbitais/fazenda/{fazendaId}
+POST /dados-orbitais/fazenda/{fazendaId}/sincronizar
+```
+
 ---
 
 ### Alertas Críticos
 
-Tela que simula alertas operacionais gerados a partir das métricas dos tanques.
+Tela que exibe alertas operacionais gerados a partir das métricas dos tanques.
 
 Funcionalidades:
 
-* Listar alertas abertos
-* Filtrar alertas resolvidos
-* Ver todos os alertas
-* Marcar alerta como resolvido
+- listar alertas abertos;
+- filtrar alertas resolvidos;
+- visualizar todos os alertas;
+- marcar alerta como resolvido.
 
 Arquivos principais:
 
@@ -360,24 +505,26 @@ src/data/repositories/CriticalAlertRepository.ts
 src/domain/models/CriticalAlert.ts
 ```
 
+Endpoints da API .NET utilizados:
+
+```txt
+GET /AlertaCritico
+PATCH /AlertaCritico/{id}/resolver
+```
+
 ---
 
 ### Marketplace
 
-Tela voltada ao investidor ESG e comprador B2B.
+Tela voltada ao investidor e comprador B2B.
 
-Funcionalidades CRUD mockadas:
+Funcionalidades:
 
-* Criar lote
-* Listar lotes
-* Reservar lote
-* Vender lote
-* Excluir lote
-
-Tipos de ativos:
-
-* Biomassa
-* Crédito de carbono
+- listar lotes;
+- criar lote de biomassa;
+- alterar status do lote;
+- comprar lote;
+- excluir lote.
 
 Arquivos principais:
 
@@ -388,21 +535,31 @@ src/data/repositories/MarketplaceRepository.ts
 src/domain/models/MarketplaceLot.ts
 ```
 
+Endpoints da API Java utilizados:
+
+```txt
+GET /marketplace/lotes
+POST /marketplace/lotes
+PATCH /marketplace/lotes/{lotId}/status
+POST /marketplace/transacoes
+DELETE /marketplace/lotes/{lotId}
+```
+
 ---
 
 ### Carteira de Carbono
 
-Tela que simula o extrato ambiental e financeiro da carteira de créditos.
+Tela que exibe o extrato ambiental e financeiro da carteira de créditos.
 
 Exibe:
 
-* CO₂ sequestrado
-* Créditos disponíveis
-* Valor estimado
-* Última validação
-* Lista de créditos
-* Status do crédito
-* Hash de auditoria
+- CO₂ sequestrado;
+- créditos disponíveis;
+- valor estimado;
+- última validação;
+- lista de créditos;
+- status do crédito;
+- hash de auditoria.
 
 Arquivos principais:
 
@@ -413,22 +570,30 @@ src/data/repositories/CarbonWalletRepository.ts
 src/domain/models/CarbonCredit.ts
 ```
 
+Endpoints da API Java utilizados:
+
+```txt
+GET /marketplace/creditos
+GET /marketplace/creditos/fazenda/{fazendaId}
+PATCH /marketplace/creditos/{id}/validar
+```
+
 ---
 
 ### Histórico de Transações
 
-Tela que simula o histórico financeiro e comercial da plataforma.
+Tela que exibe o histórico financeiro e comercial da plataforma.
 
 Exibe:
 
-* Total transacionado
-* Transações concluídas
-* Transações pendentes
-* Compras
-* Vendas
-* Biomassa
-* Créditos de carbono
-* Hash de auditoria
+- total transacionado;
+- transações concluídas;
+- transações pendentes;
+- compras;
+- vendas;
+- biomassa;
+- créditos de carbono;
+- referência de auditoria.
 
 Arquivos principais:
 
@@ -439,29 +604,47 @@ src/data/repositories/TransactionRepository.ts
 src/domain/models/Transaction.ts
 ```
 
+Endpoint da API Java utilizado:
+
+```txt
+GET /marketplace/transacoes/minhas
+```
+
 ---
 
 ### Perfil com Foto Editável
 
 Tela de perfil com:
 
-* Foto de perfil
-* Seleção de imagem pela galeria
-* Nome do usuário
-* E-mail
-* Perfil de acesso
-* Botão de logout
+- foto de perfil;
+- seleção de imagem pela galeria;
+- nome do usuário;
+- e-mail;
+- telefone;
+- perfil de acesso;
+- atualização de dados;
+- botão de logout.
 
 Arquivos principais:
 
 ```text
 src/presentation/screens/ProfileScreen.tsx
 src/presentation/contexts/AuthContext.tsx
+src/presentation/hooks/useUserProfile.ts
+src/data/repositories/UserProfileRepository.ts
+src/domain/models/UserProfile.ts
+```
+
+Endpoints da API Java utilizados:
+
+```txt
+GET /usuarios/{id}
+PUT /usuarios/{id}
 ```
 
 ---
 
-### Componentes Reutilizáveis
+## Componentes Reutilizáveis
 
 O projeto possui componentes reutilizáveis para reduzir repetição de código e melhorar a manutenção da interface.
 
@@ -481,66 +664,35 @@ Esses componentes padronizam botões, badges, estados de carregamento, erro, lis
 
 ---
 
-## Usuários Mockados
+## Usuários de Teste
 
-Enquanto as APIs Java e .NET ainda estão em desenvolvimento, o app utiliza autenticação mockada.
+A tela de login possui atalhos para preencher usuários de teste cadastrados na API Java/DML do projeto.
 
 ### Operador
 
 ```text
-E-mail: operador@phycocarbon.com
-Senha: 123456
-Perfil: OPERADOR_FAZENDA
+E-mail: joao.almeida@algaspace.com
+Senha: Operador@2026
+Perfil esperado: OPERADOR_CAMPO
 ```
 
 ### Investidor
 
 ```text
-E-mail: investidor@phycocarbon.com
-Senha: 123456
-Perfil: INVESTIDOR_ESG
+E-mail: contato@biocapital.com.br
+Senha: Investidor@2026
+Perfil esperado: INVESTIDOR
 ```
 
 ### Comprador B2B
 
 ```text
-E-mail: comprador@phycocarbon.com
-Senha: 123456
-Perfil: COMPRADOR_B2B
+E-mail: compras@nutrialga.com.br
+Senha: Comprador@2026
+Perfil esperado: COMPRADOR_B2B
 ```
 
 Também é possível criar um novo usuário pela tela de cadastro, escolhendo manualmente o perfil desejado.
-
----
-
-## Integração Futura com APIs
-
-O ecossistema do projeto prevê duas APIs principais.
-
-### API Java Spring Boot
-
-Responsável pelo núcleo de negócio:
-
-* Autenticação JWT
-* Perfis de acesso
-* Usuários
-* Fazendas
-* Marketplace
-* Transações
-* Créditos de carbono
-
-### API .NET
-
-Responsável pela ingestão e inteligência operacional:
-
-* Telemetria dos tanques
-* Dados IoT
-* Alertas críticos
-* Dados orbitais
-* Previsões de IA
-* Comunicação com ESP32/MQTT
-
-No estágio atual, essas integrações ainda estão simuladas por repositories mockados.
 
 ---
 
@@ -552,10 +704,10 @@ Clone o repositório:
 git clone https://github.com/GS1-2TDSPG-2026/gs1-mobile-application.git
 ```
 
-Acesse a pasta:
+Acesse a pasta do projeto:
 
 ```bash
-cd phycocarbon-mobile
+cd gs1-mobile-application
 ```
 
 Instale as dependências:
@@ -578,47 +730,132 @@ npx expo start -c
 
 Depois abra no:
 
-* Expo Go
-* Emulador Android
-* Dispositivo físico via QR Code
+- Expo Go;
+- emulador Android;
+- dispositivo físico via QR Code.
+
+---
+
+## Atenção ao Ambiente de API
+
+A API Java está configurada como:
+
+```txt
+http://10.0.2.2:8080/api
+```
+
+Esse endereço funciona no **emulador Android**, porque `10.0.2.2` aponta para o `localhost` da máquina.
+
+Se for testar em celular físico pelo Expo Go, troque a URL em `src/data/api/apiClient.ts` para o IP da sua máquina na rede local, por exemplo:
+
+```txt
+http://192.168.0.10:8080/api
+```
+
+A API .NET está configurada com URL pública:
+
+```txt
+https://gs1-net.onrender.com/api
+```
+
+Se a API .NET estiver rodando localmente, altere a URL em `src/data/api/dotnetApiClient.ts`.
+
+---
+
+## Relação com as APIs do Ecossistema
+
+### API Java Spring Boot
+
+Responsável pelo núcleo de negócio:
+
+- autenticação JWT;
+- perfis de acesso;
+- usuários;
+- fazendas;
+- tanques;
+- marketplace;
+- transações;
+- créditos de carbono;
+- dados orbitais.
+
+### API .NET
+
+Responsável pela ingestão e inteligência operacional:
+
+- telemetria dos tanques;
+- dados IoT;
+- alertas críticos;
+- envio de comandos para o ESP32/MQTT;
+- dados operacionais para dashboard.
+
+### IoT ESP32
+
+Responsável pela borda física/simulada:
+
+- leitura de pH;
+- leitura de temperatura;
+- leitura de luminosidade;
+- leitura de turbidez;
+- publicação MQTT;
+- recebimento de comandos MQTT;
+- acionamento de servo motor.
 
 ---
 
 ## Diferenciais Técnicos
 
-* Navegação adaptada por perfil de usuário
-* Cadastro mockado com seleção de perfil
-* Organização em camadas
-* Hooks como ViewModels simplificados
-* Repositories mockados simulando APIs futuras
-* Persistência local de sessão com AsyncStorage
-* CRUD mockado no marketplace
-* Telas com loading, erro e estado vazio
-* Componentes reutilizáveis para estados, botões, badges e containers
-* Ícones nas abas de navegação
-* Foto de perfil editável
-* Separação entre área operacional e área de investidor/comprador
-* Estrutura preparada para integração posterior com APIs Java e .NET
+- Navegação adaptada por perfil de usuário.
+- Login e cadastro integrados à API Java.
+- Token JWT salvo localmente com AsyncStorage.
+- Integração com API .NET para telemetria e IoT.
+- Marketplace integrado à API Java.
+- Carteira de carbono integrada à API Java.
+- Tela de fazendas e tanques integrada à API Java.
+- Hooks atuando como ViewModels simplificados.
+- Repositories isolando o acesso às APIs.
+- Telas com loading, erro e estado vazio.
+- Componentes reutilizáveis para estados, botões, badges e containers.
+- Ícones nas abas de navegação.
+- Foto de perfil editável.
+- Separação entre área operacional e área de investidor/comprador.
+- Estrutura preparada para evolução com IA real e sincronização offline.
+
 
 ---
 
-## Relação com o Tema da Global Solution
+## Estrutura Principal de Arquivos
 
-O projeto se conecta ao tema **“O Espaço é a nova fronteira”** por utilizar dados orbitais como insumo para tomada de decisão no cultivo de microalgas.
+```text
+App.tsx
+index.ts
+package.json
+app.json
+assets/images/
+src/app/routes/
+src/core/theme/
+src/data/api/
+src/data/repositories/
+src/data/storage/
+src/domain/models/
+src/presentation/components/
+src/presentation/contexts/
+src/presentation/hooks/
+src/presentation/screens/
+```
 
-O app mobile demonstra essa conexão por meio das telas de:
+---
+## Integrantes da Equipe
 
-* Dados Orbitais
-* Previsões de IA
-* Dashboard Operacional
-* Controle IoT
-* Carteira de Carbono
-* Marketplace B2B
-
-A proposta vai além de um app comum de monitoramento, integrando sustentabilidade, bioeconomia, sensores, dados espaciais e ativos ambientais.
+| Nome | RM | Turma | GitHub | LinkedIn |
+| --- | --- | --- | --- | --- |
+| Alexander Dennis Isidro Mamani | 565554 | 2TDSPG | [alex-isidro](https://github.com/alex-isidro) | [LinkedIn](https://www.linkedin.com/in/alexander-dennis-a3b48824b/) |
+| Arthur Brito da Silva | 562085 | 2TDSPG | [thubrito](https://github.com/thubrito) | [LinkedIn](https://www.linkedin.com/in/arthurbritodasilva/) |
+| Kelson Zhang | 563748 | 2TDSPG | [KelsonZh0](https://github.com/KelsonZh0) | [LinkedIn](https://www.linkedin.com/in/kelson-zhang-211456323/) |
+| Luiz Felipe Flosi dos Santos | 563197 | 2TDSPG | [felipeflosii](https://github.com/felipeflosii) | [LinkedIn](https://www.linkedin.com/in/felipeflosii/) |
+| Pedro Henrique Brum Lopes | 561780 | 2TDSPG | [PedroBrum-DEV](https://github.com/PedroBrum-DEV) | [LinkedIn](https://www.linkedin.com/in/pedro-brum-66a31b326/) |
 
 ---
 
 ## Licença
 
-Projeto desenvolvido exclusivamente para fins acadêmicos.
+Projeto desenvolvido exclusivamente para fins acadêmicos na Global Solution FIAP 2026.
