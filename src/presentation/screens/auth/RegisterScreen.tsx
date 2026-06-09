@@ -19,23 +19,90 @@ import { PrimaryButton } from "../../components/PrimaryButton";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useAuth } from "../../contexts/AuthContext";
 
+function somenteNumeros(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+function formatarTelefone(value: string): string {
+  const digits = somenteNumeros(value).slice(0, 11);
+
+  if (digits.length <= 2) {
+    return digits;
+  }
+
+  if (digits.length <= 6) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  }
+
+  if (digits.length <= 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+function getErrorMessage(error: unknown): string {
+  const apiError = error as {
+    response?: {
+      data?: {
+        message?: string;
+        erro?: string;
+        error?: string;
+      };
+    };
+  };
+
+  return (
+    apiError.response?.data?.message ??
+    apiError.response?.data?.erro ??
+    apiError.response?.data?.error ??
+    "Não foi possível cadastrar. Verifique os dados informados."
+  );
+}
+
 export function RegisterScreen() {
   const navigation = useNavigation<any>();
   const { signUp } = useAuth();
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [senha, setSenha] = useState("");
   const [perfil, setPerfil] = useState<UserRole>("OPERADOR_CAMPO");
   const [loading, setLoading] = useState(false);
 
+  function handlePhoneChange(value: string) {
+    setTelefone(formatarTelefone(value));
+  }
+
   async function handleRegister() {
-    if (!nome.trim() || !email.trim() || !senha.trim()) {
-      Alert.alert("Campos obrigatórios", "Preencha nome, e-mail e senha.");
+    const nomeLimpo = nome.trim();
+    const emailLimpo = email.trim().toLowerCase();
+    const telefoneNumeros = somenteNumeros(telefone);
+    const senhaLimpa = senha.trim();
+
+    if (!nomeLimpo || !emailLimpo || !telefoneNumeros || !senhaLimpa) {
+      Alert.alert(
+        "Campos obrigatórios",
+        "Preencha nome, e-mail, telefone e senha."
+      );
       return;
     }
 
-    if (senha.length < 6) {
+    if (!emailLimpo.includes("@") || !emailLimpo.includes(".")) {
+      Alert.alert("E-mail inválido", "Digite um e-mail válido.");
+      return;
+    }
+
+    if (telefoneNumeros.length < 10 || telefoneNumeros.length > 11) {
+      Alert.alert(
+        "Telefone inválido",
+        "Digite um telefone válido com DDD."
+      );
+      return;
+    }
+
+    if (senhaLimpa.length < 6) {
       Alert.alert("Senha fraca", "A senha deve ter pelo menos 6 caracteres.");
       return;
     }
@@ -44,16 +111,19 @@ export function RegisterScreen() {
       setLoading(true);
 
       await signUp({
-        nome,
-        email,
-        senha,
+        nome: nomeLimpo,
+        email: emailLimpo,
+        telefone: telefoneNumeros,
+        senha: senhaLimpa,
         perfil,
       });
-    } catch (error) {
+
       Alert.alert(
-        "Erro no cadastro",
-        "Não foi possível cadastrar. Verifique os dados informados."
+        "Cadastro realizado",
+        "Sua conta foi criada com sucesso."
       );
+    } catch (error) {
+      Alert.alert("Erro no cadastro", getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -93,7 +163,11 @@ export function RegisterScreen() {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back-outline" size={22} color={colors.textLight} />
+          <Ionicons
+            name="arrow-back-outline"
+            size={22}
+            color={colors.textLight}
+          />
           <Text style={styles.backText}>Voltar</Text>
         </TouchableOpacity>
 
@@ -111,6 +185,7 @@ export function RegisterScreen() {
             placeholderTextColor={colors.muted}
             value={nome}
             onChangeText={setNome}
+            autoCapitalize="words"
           />
 
           <Text style={styles.label}>E-mail</Text>
@@ -122,6 +197,17 @@ export function RegisterScreen() {
             keyboardType="email-address"
             value={email}
             onChangeText={setEmail}
+          />
+
+          <Text style={styles.label}>Telefone</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="(11) 99999-9999"
+            placeholderTextColor={colors.muted}
+            keyboardType="phone-pad"
+            value={telefone}
+            onChangeText={handlePhoneChange}
+            maxLength={15}
           />
 
           <Text style={styles.label}>Senha</Text>

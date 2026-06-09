@@ -2,9 +2,15 @@ import axios from "axios";
 
 import { sessionStorage } from "../storage/sessionStorage";
 
+const API_BASE_URL = "http://57.156.65.216:8080/api";
+
 export const apiClient = axios.create({
-  baseURL: "http://10.0.2.2:8080/api",
-  timeout: 15000,
+  baseURL: API_BASE_URL,
+  timeout: 30000,
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
 });
 
 apiClient.interceptors.request.use(async (config) => {
